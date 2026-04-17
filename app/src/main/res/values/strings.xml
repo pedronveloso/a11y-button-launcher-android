@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">A11Y Button</string>
+    <string name="main_status_title">Foundation status</string>
+    <string name="main_status_service_enabled">Accessibility service enabled</string>
+    <string name="main_status_service_disabled">Accessibility service disabled</string>
+    <string name="main_status_disclosure_pending">Disclosure pending</string>
+    <string name="main_status_disclosure_accepted">Disclosure accepted</string>
+    <string name="accessibility_service_label">A11Y Button Shortcut Service</string>
+    <string name="accessibility_service_description">Launches your selected app from the accessibility button or shortcut.</string>
 </resources>
