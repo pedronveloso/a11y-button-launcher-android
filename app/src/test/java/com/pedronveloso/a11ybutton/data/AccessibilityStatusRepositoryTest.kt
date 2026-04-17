@@ -9,39 +9,39 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AccessibilityStatusRepositoryTest {
-    @Test
-    fun isEnabledServiceListed_returnsTrue_whenServiceIdExists() {
-        val enabledServices =
-            "com.example.reader/.ReaderService:com.pedronveloso.a11ybutton/.service.ShortcutLaunchAccessibilityService"
+  @Test
+  fun isEnabledServiceListed_returnsTrue_whenServiceIdExists() {
+    val enabledServices =
+        "com.example.reader/.ReaderService:com.pedronveloso.a11ybutton/.service.ShortcutLaunchAccessibilityService"
 
-        val isEnabled =
-            AccessibilityStatusRepository.isEnabledServiceListed(
-                enabledServices = enabledServices,
-                serviceId = "com.pedronveloso.a11ybutton/.service.ShortcutLaunchAccessibilityService",
-            )
+    val isEnabled =
+        AccessibilityStatusRepository.isEnabledServiceListed(
+            enabledServices = enabledServices,
+            serviceId = "com.pedronveloso.a11ybutton/.service.ShortcutLaunchAccessibilityService",
+        )
 
-        assertTrue(isEnabled)
-    }
+    assertTrue(isEnabled)
+  }
 
-    @Test
-    fun isEnabledServiceListed_returnsFalse_whenListIsMissingService() {
-        val isEnabled =
-            AccessibilityStatusRepository.isEnabledServiceListed(
-                enabledServices = "com.example.reader/.ReaderService",
-                serviceId = "com.pedronveloso.a11ybutton/.service.ShortcutLaunchAccessibilityService",
-            )
+  @Test
+  fun isEnabledServiceListed_returnsFalse_whenListIsMissingService() {
+    val isEnabled =
+        AccessibilityStatusRepository.isEnabledServiceListed(
+            enabledServices = "com.example.reader/.ReaderService",
+            serviceId = "com.pedronveloso.a11ybutton/.service.ShortcutLaunchAccessibilityService",
+        )
 
-        assertFalse(isEnabled)
-    }
+    assertFalse(isEnabled)
+  }
 
-    @Test
-    fun isEnabledServiceListed_returnsFalse_whenValueIsNull() {
-        val isEnabled =
-            AccessibilityStatusRepository.isEnabledServiceListed(
-                enabledServices = null,
-                serviceId = "com.pedronveloso.a11ybutton/.service.ShortcutLaunchAccessibilityService",
-            )
+  @Test
+  fun isEnabledServiceListed_returnsFalse_whenValueIsNull() {
+    val isEnabled =
+        AccessibilityStatusRepository.isEnabledServiceListed(
+            enabledServices = null,
+            serviceId = "com.pedronveloso.a11ybutton/.service.ShortcutLaunchAccessibilityService",
+        )
 
-        assertFalse(isEnabled)
-    }
+    assertFalse(isEnabled)
+  }
 }

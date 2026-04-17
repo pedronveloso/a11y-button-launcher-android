@@ -7,9 +7,9 @@ package com.pedronveloso.a11ybutton.ui
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 
 enum class SetupReadiness {
-    NotSetUp,
-    PartiallySetUp,
-    Ready,
+  NotSetUp,
+  PartiallySetUp,
+  Ready,
 }
 
 data class MainScreenState(
@@ -26,20 +26,20 @@ fun deriveMainScreenState(
     selectedAppState: SelectedAppState,
     serviceMessage: String? = null,
 ): MainScreenState {
-    val selectedAppConfigured = selectedAppState is SelectedAppState.Valid
-    val completedRequirements = listOf(serviceEnabled, selectedAppConfigured).count { it }
-    val readiness =
-        when (completedRequirements) {
-            2 -> SetupReadiness.Ready
-            1 -> SetupReadiness.PartiallySetUp
-            else -> SetupReadiness.NotSetUp
-        }
+  val selectedAppConfigured = selectedAppState is SelectedAppState.Valid
+  val completedRequirements = listOf(serviceEnabled, selectedAppConfigured).count { it }
+  val readiness =
+      when (completedRequirements) {
+        2 -> SetupReadiness.Ready
+        1 -> SetupReadiness.PartiallySetUp
+        else -> SetupReadiness.NotSetUp
+      }
 
-    return MainScreenState(
-        serviceEnabled = serviceEnabled,
-        disclosureAccepted = disclosureAccepted,
-        selectedAppState = selectedAppState,
-        serviceMessage = serviceMessage,
-        readiness = readiness,
-    )
+  return MainScreenState(
+      serviceEnabled = serviceEnabled,
+      disclosureAccepted = disclosureAccepted,
+      selectedAppState = selectedAppState,
+      serviceMessage = serviceMessage,
+      readiness = readiness,
+  )
 }

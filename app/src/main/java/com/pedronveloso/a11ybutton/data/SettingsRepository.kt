@@ -20,55 +20,53 @@ import kotlinx.coroutines.flow.map
 
 private const val SETTINGS_DATASTORE_NAME = "app_settings"
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
-    name = SETTINGS_DATASTORE_NAME,
-)
+private val Context.dataStore: DataStore<Preferences> by
+    preferencesDataStore(
+        name = SETTINGS_DATASTORE_NAME,
+    )
 
 class SettingsRepository(
     private val dataStore: DataStore<Preferences>,
 ) {
-    val settings: Flow<AppSettings> =
-        dataStore.data
-            .catch { throwable ->
-                if (throwable is IOException) {
-                    emit(emptyPreferences())
-                } else {
-                    throw throwable
-                }
+  val settings: Flow<AppSettings> =
+      dataStore.data
+          .catch { throwable ->
+            if (throwable is IOException) {
+              emit(emptyPreferences())
+            } else {
+              throw throwable
             }
-            .map(::preferencesToAppSettings)
+          }
+          .map(::preferencesToAppSettings)
 
-    suspend fun setDisclosureAccepted(accepted: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[DISCLOSURE_ACCEPTED_KEY] = accepted
-        }
+  suspend fun setDisclosureAccepted(accepted: Boolean) {
+    dataStore.edit { preferences -> preferences[DISCLOSURE_ACCEPTED_KEY] = accepted }
+  }
+
+  suspend fun updateSelection(
+      packageName: String?,
+      componentName: String?,
+  ) {
+    dataStore.edit { preferences ->
+      preferences[SELECTED_PACKAGE_NAME_KEY] = packageName.orEmpty()
+      preferences[SELECTED_COMPONENT_NAME_KEY] = componentName.orEmpty()
     }
+  }
 
-    suspend fun updateSelection(
-        packageName: String?,
-        componentName: String?,
-    ) {
-        dataStore.edit { preferences ->
-            preferences[SELECTED_PACKAGE_NAME_KEY] = packageName.orEmpty()
-            preferences[SELECTED_COMPONENT_NAME_KEY] = componentName.orEmpty()
-        }
-    }
+  companion object {
+    internal val SELECTED_PACKAGE_NAME_KEY = stringPreferencesKey("selected_package_name")
+    internal val SELECTED_COMPONENT_NAME_KEY = stringPreferencesKey("selected_component_name")
+    internal val DISCLOSURE_ACCEPTED_KEY = booleanPreferencesKey("disclosure_accepted")
 
-    companion object {
-        internal val SELECTED_PACKAGE_NAME_KEY = stringPreferencesKey("selected_package_name")
-        internal val SELECTED_COMPONENT_NAME_KEY =
-            stringPreferencesKey("selected_component_name")
-        internal val DISCLOSURE_ACCEPTED_KEY = booleanPreferencesKey("disclosure_accepted")
+    fun fromContext(context: Context): SettingsRepository = SettingsRepository(context.dataStore)
 
-        fun fromContext(context: Context): SettingsRepository = SettingsRepository(context.dataStore)
-
-        internal fun preferencesToAppSettings(preferences: Preferences): AppSettings =
-            AppSettings(
-                selectedPackageName = preferences[SELECTED_PACKAGE_NAME_KEY].nullIfBlank(),
-                selectedComponentName = preferences[SELECTED_COMPONENT_NAME_KEY].nullIfBlank(),
-                disclosureAccepted = preferences[DISCLOSURE_ACCEPTED_KEY] ?: false,
-            )
-    }
+    internal fun preferencesToAppSettings(preferences: Preferences): AppSettings =
+        AppSettings(
+            selectedPackageName = preferences[SELECTED_PACKAGE_NAME_KEY].nullIfBlank(),
+            selectedComponentName = preferences[SELECTED_COMPONENT_NAME_KEY].nullIfBlank(),
+            disclosureAccepted = preferences[DISCLOSURE_ACCEPTED_KEY] ?: false,
+        )
+  }
 }
 
 private fun String?.nullIfBlank(): String? = if (isNullOrBlank()) null else this

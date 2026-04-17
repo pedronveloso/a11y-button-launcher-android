@@ -24,100 +24,99 @@ import kotlinx.coroutines.launch
 class MainViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
-    private val settingsRepository = SettingsRepository.fromContext(application)
-    private val installedAppsRepository = InstalledAppsRepository(application)
-    private val serviceComponent =
-        ComponentName(application, ShortcutLaunchAccessibilityService::class.java)
-    private val serviceEnabled = MutableStateFlow(false)
-    private val selectedAppState = MutableStateFlow<SelectedAppState>(SelectedAppState.None)
-    private val availableApps = MutableStateFlow(AppPickerApps())
-    private val serviceMessage = MutableStateFlow<String?>(null)
-    private val settingsState =
-        settingsRepository.settings.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
-            initialValue = AppSettings(),
-        )
+  private val settingsRepository = SettingsRepository.fromContext(application)
+  private val installedAppsRepository = InstalledAppsRepository(application)
+  private val serviceComponent =
+      ComponentName(application, ShortcutLaunchAccessibilityService::class.java)
+  private val serviceEnabled = MutableStateFlow(false)
+  private val selectedAppState = MutableStateFlow<SelectedAppState>(SelectedAppState.None)
+  private val availableApps = MutableStateFlow(AppPickerApps())
+  private val serviceMessage = MutableStateFlow<String?>(null)
+  private val settingsState =
+      settingsRepository.settings.stateIn(
+          scope = viewModelScope,
+          started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+          initialValue = AppSettings(),
+      )
 
-    val screenState =
-        combine(
-            serviceEnabled,
-            settingsState,
-            selectedAppState,
-            serviceMessage,
-        ) { isServiceEnabled, settings, currentSelection, currentServiceMessage ->
+  val screenState =
+      combine(
+              serviceEnabled,
+              settingsState,
+              selectedAppState,
+              serviceMessage,
+          ) { isServiceEnabled, settings, currentSelection, currentServiceMessage ->
             deriveMainScreenState(
                 serviceEnabled = isServiceEnabled,
                 disclosureAccepted = settings.disclosureAccepted,
                 selectedAppState = currentSelection,
                 serviceMessage = currentServiceMessage,
             )
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
-            initialValue = MainScreenState(),
+          }
+          .stateIn(
+              scope = viewModelScope,
+              started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+              initialValue = MainScreenState(),
+          )
+
+  val pickerApps =
+      availableApps.stateIn(
+          scope = viewModelScope,
+          started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+          initialValue = AppPickerApps(),
+      )
+
+  init {
+    refreshServiceStatus()
+    refreshAvailableApps()
+    viewModelScope.launch {
+      settingsState.collect { settings ->
+        selectedAppState.value = installedAppsRepository.validateSelection(settings)
+      }
+    }
+  }
+
+  fun refreshServiceStatus() {
+    serviceEnabled.value =
+        AccessibilityStatusRepository.isServiceEnabled(
+            context = getApplication(),
+            serviceComponent = serviceComponent,
         )
+  }
 
-    val pickerApps =
-        availableApps.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
-            initialValue = AppPickerApps(),
+  fun refreshSelection() {
+    selectedAppState.value = installedAppsRepository.validateSelection(settingsState.value)
+  }
+
+  fun refreshAvailableApps() {
+    availableApps.value =
+        AppPickerApps(
+            items =
+                installedAppsRepository.getLaunchableApps().filterNot {
+                  it.packageName == getApplication<Application>().packageName
+                },
         )
+  }
 
-    init {
-        refreshServiceStatus()
-        refreshAvailableApps()
-        viewModelScope.launch {
-            settingsState.collect { settings ->
-                selectedAppState.value = installedAppsRepository.validateSelection(settings)
-            }
-        }
-    }
+  fun acceptDisclosure() {
+    viewModelScope.launch { settingsRepository.setDisclosureAccepted(accepted = true) }
+  }
 
-    fun refreshServiceStatus() {
-        serviceEnabled.value =
-            AccessibilityStatusRepository.isServiceEnabled(
-                context = getApplication(),
-                serviceComponent = serviceComponent,
-            )
-    }
+  fun setServiceMessage(message: String?) {
+    serviceMessage.value = message
+  }
 
-    fun refreshSelection() {
-        selectedAppState.value = installedAppsRepository.validateSelection(settingsState.value)
-    }
+  fun clearServiceMessage() {
+    serviceMessage.value = null
+  }
 
-    fun refreshAvailableApps() {
-        availableApps.value =
-            AppPickerApps(
-                items =
-                    installedAppsRepository
-                        .getLaunchableApps()
-                        .filterNot { it.packageName == getApplication<Application>().packageName },
-            )
+  fun selectApp(app: InstalledApp) {
+    viewModelScope.launch {
+      settingsRepository.updateSelection(
+          packageName = app.packageName,
+          componentName = app.componentName,
+      )
+      refreshSelection()
     }
-
-    fun acceptDisclosure() {
-        viewModelScope.launch {
-            settingsRepository.setDisclosureAccepted(accepted = true)
-        }
-    }
-
-    fun setServiceMessage(message: String?) {
-        serviceMessage.value = message
-    }
-
-    fun clearServiceMessage() {
-        serviceMessage.value = null
-    }
-
-    fun selectApp(app: InstalledApp) {
-        viewModelScope.launch {
-            settingsRepository.updateSelection(
-                packageName = app.packageName,
-                componentName = app.componentName,
-            )
-            refreshSelection()
-        }
-    }
+  }
 }
