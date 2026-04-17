@@ -16,7 +16,7 @@
     <string name="main_actions_title">Actions</string>
     <string name="main_action_open_settings">Open Accessibility Settings</string>
     <string name="main_action_choose_app">Choose App</string>
-    <string name="main_action_choose_app_pending">App picker arrives in the next phase.</string>
+    <string name="main_action_change_app">Change App</string>
     <string name="main_disclosure_title">Why Accessibility access is required</string>
     <string name="main_disclosure_body">The service listens for the system Accessibility trigger and launches only the app you select. It does not add automation or overlays.</string>
     <string name="main_disclosure_accept">I understand</string>
@@ -24,8 +24,19 @@
     <string name="main_selected_app_title">Selected app</string>
     <string name="main_selected_app_empty">No app selected yet</string>
     <string name="main_selected_app_help">Choose an app in the next step to make the shortcut ready.</string>
+    <string name="main_selected_app_invalid">Saved selection needs attention</string>
+    <string name="main_selected_app_missing">The selected app is no longer installed.</string>
+    <string name="main_selected_app_disabled">The selected app is currently disabled.</string>
+    <string name="main_selected_app_changed">The selected app changed its launcher entry.</string>
+    <string name="main_selected_app_not_launchable">The selected app no longer has a valid launcher entry.</string>
+    <string name="main_status_app_invalid">Needs reselection</string>
     <string name="main_help_title">Quick help</string>
     <string name="main_help_body">After changing the service in system settings, return here and the status will refresh automatically.</string>
+    <string name="picker_title">Choose an app</string>
+    <string name="picker_search_label">Search apps</string>
+    <string name="picker_empty">No launchable apps match this search.</string>
+    <string name="picker_back">Back</string>
+    <string name="picker_icon_fallback">App</string>
     <string name="accessibility_service_label">A11Y Button Shortcut Service</string>
     <string name="accessibility_service_description">Launches your selected app from the accessibility button or shortcut.</string>
 </resources>

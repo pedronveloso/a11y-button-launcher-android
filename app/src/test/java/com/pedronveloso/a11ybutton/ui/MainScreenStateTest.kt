@@ -4,6 +4,9 @@
  */
 package com.pedronveloso.a11ybutton.ui
 
+import com.pedronveloso.a11ybutton.model.InstalledApp
+import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
+import com.pedronveloso.a11ybutton.model.SelectedAppState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -14,7 +17,7 @@ class MainScreenStateTest {
             deriveMainScreenState(
                 serviceEnabled = false,
                 disclosureAccepted = false,
-                selectedAppConfigured = false,
+                selectedAppState = SelectedAppState.None,
             )
 
         assertEquals(SetupReadiness.NotSetUp, state.readiness)
@@ -26,7 +29,7 @@ class MainScreenStateTest {
             deriveMainScreenState(
                 serviceEnabled = true,
                 disclosureAccepted = true,
-                selectedAppConfigured = false,
+                selectedAppState = SelectedAppState.None,
             )
 
         assertEquals(SetupReadiness.PartiallySetUp, state.readiness)
@@ -38,9 +41,34 @@ class MainScreenStateTest {
             deriveMainScreenState(
                 serviceEnabled = true,
                 disclosureAccepted = true,
-                selectedAppConfigured = true,
+                selectedAppState =
+                    SelectedAppState.Valid(
+                        app =
+                            InstalledApp(
+                                packageName = "com.example.reader",
+                                componentName = "com.example.reader/.HomeActivity",
+                                label = "Reader",
+                            ),
+                    ),
             )
 
         assertEquals(SetupReadiness.Ready, state.readiness)
+    }
+
+    @Test
+    fun deriveMainScreenState_isNotReady_whenSelectionIsInvalid() {
+        val state =
+            deriveMainScreenState(
+                serviceEnabled = true,
+                disclosureAccepted = true,
+                selectedAppState =
+                    SelectedAppState.Invalid(
+                        packageName = "com.example.reader",
+                        componentName = "com.example.reader/.HomeActivity",
+                        reason = InvalidSelectionReason.MissingApp,
+                    ),
+            )
+
+        assertEquals(SetupReadiness.PartiallySetUp, state.readiness)
     }
 }

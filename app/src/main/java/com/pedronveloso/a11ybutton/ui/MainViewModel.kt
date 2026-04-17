@@ -9,7 +9,11 @@ import android.content.ComponentName
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pedronveloso.a11ybutton.data.AccessibilityStatusRepository
+import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
 import com.pedronveloso.a11ybutton.data.SettingsRepository
+import com.pedronveloso.a11ybutton.model.AppSettings
+import com.pedronveloso.a11ybutton.model.InstalledApp
+import com.pedronveloso.a11ybutton.model.SelectedAppState
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,20 +26,29 @@ class MainViewModel(
 ) : AndroidViewModel(application) {
     private val settingsRepository = SettingsRepository.fromContext(application)
     private val accessibilityStatusRepository = AccessibilityStatusRepository(application)
+    private val installedAppsRepository = InstalledAppsRepository(application)
     private val serviceComponent =
         ComponentName(application, ShortcutLaunchAccessibilityService::class.java)
     private val serviceEnabled = MutableStateFlow(false)
+    private val selectedAppState = MutableStateFlow<SelectedAppState>(SelectedAppState.None)
+    private val availableApps = MutableStateFlow(AppPickerApps())
+    private val settingsState =
+        settingsRepository.settings.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+            initialValue = AppSettings(),
+        )
 
     val screenState =
         combine(
             serviceEnabled,
-            settingsRepository.settings,
-        ) { isServiceEnabled, settings ->
+            settingsState,
+            selectedAppState,
+        ) { isServiceEnabled, settings, currentSelection ->
             deriveMainScreenState(
                 serviceEnabled = isServiceEnabled,
                 disclosureAccepted = settings.disclosureAccepted,
-                selectedAppConfigured =
-                    settings.selectedPackageName != null && settings.selectedComponentName != null,
+                selectedAppState = currentSelection,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -43,8 +56,21 @@ class MainViewModel(
             initialValue = MainScreenState(),
         )
 
+    val pickerApps =
+        availableApps.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+            initialValue = AppPickerApps(),
+        )
+
     init {
         refreshServiceStatus()
+        refreshAvailableApps()
+        viewModelScope.launch {
+            settingsState.collect { settings ->
+                selectedAppState.value = installedAppsRepository.validateSelection(settings)
+            }
+        }
     }
 
     fun refreshServiceStatus() {
@@ -55,9 +81,33 @@ class MainViewModel(
             )
     }
 
+    fun refreshSelection() {
+        selectedAppState.value = installedAppsRepository.validateSelection(settingsState.value)
+    }
+
+    fun refreshAvailableApps() {
+        availableApps.value =
+            AppPickerApps(
+                items =
+                    installedAppsRepository
+                        .getLaunchableApps()
+                        .filterNot { it.packageName == getApplication<Application>().packageName },
+            )
+    }
+
     fun acceptDisclosure() {
         viewModelScope.launch {
             settingsRepository.setDisclosureAccepted(accepted = true)
+        }
+    }
+
+    fun selectApp(app: InstalledApp) {
+        viewModelScope.launch {
+            settingsRepository.updateSelection(
+                packageName = app.packageName,
+                componentName = app.componentName,
+            )
+            refreshSelection()
         }
     }
 }
