@@ -33,7 +33,10 @@ android {
     targetCompatibility = JavaVersion.VERSION_17
   }
   kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }
-  buildFeatures { compose = true }
+  buildFeatures {
+    compose = true
+    buildConfig = true
+  }
   lint {
     warningsAsErrors = true
     baseline = file("lint-baseline.xml")
@@ -54,11 +57,15 @@ dependencies {
   implementation(libs.androidx.compose.ui)
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
+  implementation(libs.androidx.compose.material.icons.extended)
   implementation(libs.androidx.compose.material3)
+  implementation(libs.timber)
 
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
+  androidTestImplementation(platform(libs.androidx.compose.bom))
   androidTestImplementation(libs.androidx.junit)
+  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   androidTestImplementation(libs.androidx.espresso.core)
 
   debugImplementation(libs.androidx.compose.ui.tooling)

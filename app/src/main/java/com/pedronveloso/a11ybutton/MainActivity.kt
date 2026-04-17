@@ -17,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,10 +27,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -61,6 +67,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
+import com.pedronveloso.a11ybutton.logging.InMemoryLogStore
+import com.pedronveloso.a11ybutton.logging.LogEntry
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.SelectedAppState
@@ -69,10 +77,16 @@ import com.pedronveloso.a11ybutton.ui.MainScreenState
 import com.pedronveloso.a11ybutton.ui.MainViewModel
 import com.pedronveloso.a11ybutton.ui.SetupReadiness
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import timber.log.Timber
 
 private enum class MainDestination {
   Home,
   Picker,
+  DebugMenu,
+  DebugLogs,
 }
 
 class MainActivity : ComponentActivity() {
@@ -80,6 +94,7 @@ class MainActivity : ComponentActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    Timber.i("MainActivity created")
     consumeIntent(intent)
     enableEdgeToEdge()
     setContent { A11YButtonTheme { MainRoute(viewModel = mainViewModel) } }
@@ -87,12 +102,15 @@ class MainActivity : ComponentActivity() {
 
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
+    Timber.i("MainActivity received a new intent")
     setIntent(intent)
     consumeIntent(intent)
   }
 
   private fun consumeIntent(intent: Intent?) {
-    mainViewModel.setServiceMessage(intent?.getStringExtra(EXTRA_STATUS_MESSAGE))
+    val serviceMessage = intent?.getStringExtra(EXTRA_STATUS_MESSAGE)
+    Timber.d("Consuming activity intent with status message=%s", serviceMessage)
+    mainViewModel.setServiceMessage(serviceMessage)
     intent?.removeExtra(EXTRA_STATUS_MESSAGE)
   }
 
@@ -109,8 +127,10 @@ fun MainRoute(
 ) {
   val screenState by viewModel.screenState.collectAsStateWithLifecycle()
   val pickerApps by viewModel.pickerApps.collectAsStateWithLifecycle()
+  val logEntries by InMemoryLogStore.entries.collectAsStateWithLifecycle()
   val lifecycleOwner = LocalLifecycleOwner.current
   var destination by rememberSaveable { mutableStateOf(MainDestination.Home) }
+  val canOpenDebugTools = BuildConfig.DEBUG
 
   DisposableEffect(lifecycleOwner, viewModel) {
     val observer = LifecycleEventObserver { _, event ->
@@ -129,7 +149,13 @@ fun MainRoute(
     MainDestination.Home ->
         Scaffold(
             modifier = modifier.fillMaxSize(),
-            topBar = { TopAppBar(title = { Text(text = stringResource(id = R.string.app_name)) }) },
+            topBar = {
+              AppTopBar(
+                  title = stringResource(id = R.string.app_name),
+                  showDebugAction = canOpenDebugTools,
+                  onDebugClick = { destination = MainDestination.DebugMenu },
+              )
+            },
         ) { innerPadding ->
           HomeScreen(
               screenState = screenState,
@@ -152,10 +178,66 @@ fun MainRoute(
             viewModel.selectApp(app)
             destination = MainDestination.Home
           },
+          showDebugAction = canOpenDebugTools,
+          onDebugClick = { destination = MainDestination.DebugMenu },
+          modifier = modifier,
+      )
+    }
+
+    MainDestination.DebugMenu -> {
+      BackHandler { destination = MainDestination.Home }
+      DebugMenuScreen(
+          logCount = logEntries.size,
+          onBack = { destination = MainDestination.Home },
+          onOpenLogs = { destination = MainDestination.DebugLogs },
+          modifier = modifier,
+      )
+    }
+
+    MainDestination.DebugLogs -> {
+      BackHandler { destination = MainDestination.DebugMenu }
+      DebugLogsScreen(
+          entries = logEntries,
+          onBack = { destination = MainDestination.DebugMenu },
+          onClearLogs = InMemoryLogStore::clear,
           modifier = modifier,
       )
     }
   }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun AppTopBar(
+    title: String,
+    showBack: Boolean = false,
+    onBack: (() -> Unit)? = null,
+    showDebugAction: Boolean = false,
+    onDebugClick: (() -> Unit)? = null,
+) {
+  TopAppBar(
+      title = { Text(text = title) },
+      navigationIcon = {
+        if (showBack && onBack != null) {
+          IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(id = R.string.picker_back),
+            )
+          }
+        }
+      },
+      actions = {
+        if (showDebugAction && onDebugClick != null) {
+          IconButton(onClick = onDebugClick) {
+            Icon(
+                imageVector = Icons.Filled.BugReport,
+                contentDescription = stringResource(id = R.string.debug_open_menu),
+            )
+          }
+        }
+      },
+  )
 }
 
 @Composable
@@ -353,6 +435,8 @@ private fun AppPickerScreen(
     apps: AppPickerApps,
     onBack: () -> Unit,
     onAppSelected: (InstalledApp) -> Unit,
+    showDebugAction: Boolean,
+    onDebugClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   var query by rememberSaveable { mutableStateOf("") }
@@ -368,8 +452,12 @@ private fun AppPickerScreen(
   Scaffold(
       modifier = modifier.fillMaxSize(),
       topBar = {
-        TopAppBar(
-            title = { Text(text = stringResource(id = R.string.picker_title)) },
+        AppTopBar(
+            title = stringResource(id = R.string.picker_title),
+            showBack = true,
+            onBack = onBack,
+            showDebugAction = showDebugAction,
+            onDebugClick = onDebugClick,
         )
       },
   ) { innerPadding ->
@@ -432,6 +520,143 @@ private fun AppPickerScreen(
             }
           }
         }
+      }
+    }
+  }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun DebugMenuScreen(
+    logCount: Int,
+    onBack: () -> Unit,
+    onOpenLogs: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  Scaffold(
+      modifier = modifier.fillMaxSize(),
+      topBar = {
+        AppTopBar(
+            title = stringResource(id = R.string.debug_menu_title),
+            showBack = true,
+            onBack = onBack,
+        )
+      },
+  ) { innerPadding ->
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+    ) {
+      SectionCard(title = stringResource(id = R.string.debug_menu_title)) {
+        Text(
+            text = stringResource(id = R.string.debug_menu_logs_count, logCount),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Button(
+            onClick = onOpenLogs,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.debug_menu_open_logs))
+        }
+      }
+    }
+  }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun DebugLogsScreen(
+    entries: List<LogEntry>,
+    onBack: () -> Unit,
+    onClearLogs: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  Scaffold(
+      modifier = modifier.fillMaxSize(),
+      topBar = {
+        AppTopBar(
+            title = stringResource(id = R.string.debug_logs_title),
+            showBack = true,
+            onBack = onBack,
+        )
+      },
+  ) { innerPadding ->
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
+    ) {
+      OutlinedButton(
+          onClick = onClearLogs,
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(text = stringResource(id = R.string.debug_logs_clear))
+      }
+
+      if (entries.isEmpty()) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+          Text(
+              text = stringResource(id = R.string.debug_logs_empty),
+              style = MaterialTheme.typography.bodyMedium,
+          )
+        }
+      } else {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+          items(
+              items = entries.asReversed(),
+              key = { entry ->
+                "${entry.timestampMillis}:${entry.priority}:${entry.tag}:${entry.message}"
+              },
+          ) { entry ->
+            LogEntryCard(entry = entry)
+          }
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun LogEntryCard(
+    entry: LogEntry,
+    modifier: Modifier = Modifier,
+) {
+  Card(modifier = modifier.fillMaxWidth()) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(16.dp),
+    ) {
+      Row(
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(
+            text = formatLogPriority(entry.priority),
+            style = MaterialTheme.typography.labelLarge,
+        )
+        Text(
+            text = formatLogTimestamp(entry.timestampMillis),
+            style = MaterialTheme.typography.labelMedium,
+        )
+        Text(
+            text = entry.tag ?: stringResource(id = R.string.debug_log_entry_fallback_tag),
+            style = MaterialTheme.typography.labelMedium,
+        )
+      }
+      Text(
+          text = entry.message,
+          style = MaterialTheme.typography.bodyMedium,
+      )
+      entry.throwable?.let { throwable ->
+        Text(
+            text = "${throwable::class.java.simpleName}: ${throwable.message.orEmpty()}",
+            style = MaterialTheme.typography.bodySmall,
+        )
       }
     }
   }
@@ -563,6 +788,23 @@ private fun contextString(
     argument: String,
 ): String = stringResource(id = id, argument)
 
+private fun formatLogPriority(priority: Int): String =
+    when (priority) {
+      android.util.Log.VERBOSE -> "V"
+      android.util.Log.DEBUG -> "D"
+      android.util.Log.INFO -> "I"
+      android.util.Log.WARN -> "W"
+      android.util.Log.ERROR -> "E"
+      android.util.Log.ASSERT -> "A"
+      else -> priority.toString()
+    }
+
+private fun formatLogTimestamp(timestampMillis: Long): String =
+    LOG_TIMESTAMP_FORMATTER.format(Instant.ofEpochMilli(timestampMillis))
+
+private val LOG_TIMESTAMP_FORMATTER: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
+
 @Preview(showBackground = true)
 @Composable
 private fun HomeScreenPreview() {
@@ -613,6 +855,8 @@ private fun AppPickerPreview() {
             ),
         onBack = {},
         onAppSelected = {},
+        showDebugAction = true,
+        onDebugClick = {},
     )
   }
 }

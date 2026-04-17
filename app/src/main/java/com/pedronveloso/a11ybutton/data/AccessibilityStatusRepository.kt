@@ -9,12 +9,15 @@ import android.content.Context
 import android.provider.Settings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import timber.log.Timber
 
 class AccessibilityStatusRepository(
     private val context: Context,
 ) {
   fun observeServiceEnabled(serviceComponent: ComponentName): Flow<Boolean> = flow {
-    emit(isServiceEnabled(context, serviceComponent))
+    val enabled = isServiceEnabled(context, serviceComponent)
+    Timber.d("Observed accessibility service enabled=%s", enabled)
+    emit(enabled)
   }
 
   companion object {
@@ -30,6 +33,7 @@ class AccessibilityStatusRepository(
           ) == 1
 
       if (!accessibilityEnabled) {
+        Timber.d("Accessibility is globally disabled")
         return false
       }
 
@@ -39,7 +43,9 @@ class AccessibilityStatusRepository(
               Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
           )
 
-      return isEnabledServiceListed(enabledServices, serviceComponent.flattenToString())
+      return isEnabledServiceListed(enabledServices, serviceComponent.flattenToString()).also {
+        Timber.d("Accessibility service %s enabled=%s", serviceComponent.flattenToString(), it)
+      }
     }
 
     internal fun isEnabledServiceListed(

@@ -45,6 +45,14 @@
     <string name="picker_back">Back</string>
     <string name="picker_icon_fallback">App</string>
     <string name="picker_select_app">Select %1$s</string>
+    <string name="debug_open_menu">Open debug menu</string>
+    <string name="debug_menu_title">Debug Menu</string>
+    <string name="debug_logs_title">In-Memory Logs</string>
+    <string name="debug_menu_open_logs">Open in-memory logs</string>
+    <string name="debug_menu_logs_count">Captured log entries: %1$d</string>
+    <string name="debug_logs_empty">No logs captured yet.</string>
+    <string name="debug_logs_clear">Clear logs</string>
+    <string name="debug_log_entry_fallback_tag">App</string>
     <string name="accessibility_service_label">A11Y Button Shortcut Service</string>
     <string name="accessibility_service_description">Launches your selected app from the accessibility button or shortcut.</string>
     <string name="service_message_choose_app_first">Choose an app before using the Accessibility shortcut.</string>

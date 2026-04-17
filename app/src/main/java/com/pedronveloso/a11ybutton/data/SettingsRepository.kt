@@ -17,6 +17,7 @@ import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import timber.log.Timber
 
 private const val SETTINGS_DATASTORE_NAME = "app_settings"
 
@@ -32,6 +33,7 @@ class SettingsRepository(
       dataStore.data
           .catch { throwable ->
             if (throwable is IOException) {
+              Timber.w(throwable, "Failed to read app settings; falling back to defaults")
               emit(emptyPreferences())
             } else {
               throw throwable
@@ -40,6 +42,7 @@ class SettingsRepository(
           .map(::preferencesToAppSettings)
 
   suspend fun setDisclosureAccepted(accepted: Boolean) {
+    Timber.i("Updating disclosure acceptance to %s", accepted)
     dataStore.edit { preferences -> preferences[DISCLOSURE_ACCEPTED_KEY] = accepted }
   }
 
@@ -47,6 +50,11 @@ class SettingsRepository(
       packageName: String?,
       componentName: String?,
   ) {
+    Timber.i(
+        "Updating selected app to package=%s component=%s",
+        packageName,
+        componentName,
+    )
     dataStore.edit { preferences ->
       preferences[SELECTED_PACKAGE_NAME_KEY] = packageName.orEmpty()
       preferences[SELECTED_COMPONENT_NAME_KEY] = componentName.orEmpty()

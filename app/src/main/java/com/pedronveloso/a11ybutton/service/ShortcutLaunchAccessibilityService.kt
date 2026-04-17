@@ -20,6 +20,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class ShortcutLaunchAccessibilityService : AccessibilityService() {
   private val callbackHandler = Handler(Looper.getMainLooper())
@@ -27,12 +28,14 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
   private val accessibilityButtonCallback =
       object : AccessibilityButtonController.AccessibilityButtonCallback() {
         override fun onClicked(controller: AccessibilityButtonController) {
+          Timber.i("Accessibility button pressed")
           handleTrigger()
         }
       }
 
   override fun onServiceConnected() {
     super.onServiceConnected()
+    Timber.i("Accessibility service connected")
 
     accessibilityButtonController.registerAccessibilityButtonCallback(
         accessibilityButtonCallback,
@@ -41,6 +44,7 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
   }
 
   override fun onDestroy() {
+    Timber.i("Accessibility service destroyed")
     accessibilityButtonController.unregisterAccessibilityButtonCallback(accessibilityButtonCallback)
     serviceScope.cancel()
     super.onDestroy()
@@ -55,19 +59,37 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
   }
 
   private fun handleTrigger() {
+    Timber.i("Accessibility shortcut triggered")
     serviceScope.launch {
       val settingsRepository =
           SettingsRepository.fromContext(this@ShortcutLaunchAccessibilityService)
       val installedAppsRepository = InstalledAppsRepository(this@ShortcutLaunchAccessibilityService)
       val settings = settingsRepository.settings.first()
+      Timber.d(
+          "Loaded settings for trigger with package=%s component=%s disclosureAccepted=%s",
+          settings.selectedPackageName,
+          settings.selectedComponentName,
+          settings.disclosureAccepted,
+      )
       val selectionState = installedAppsRepository.validateSelection(settings)
 
       when (selectionState) {
         is SelectedAppState.Valid -> {
+          Timber.i(
+              "Attempting to launch selected app label=%s package=%s component=%s",
+              selectionState.app.label,
+              selectionState.app.packageName,
+              selectionState.app.componentName,
+          )
           launchTargetApp(selectionState.app.componentName)
         }
 
         is SelectedAppState.Invalid -> {
+          Timber.w(
+              "Saved selection invalid; clearing package=%s component=%s",
+              selectionState.packageName,
+              selectionState.componentName,
+          )
           settingsRepository.updateSelection(
               packageName = null,
               componentName = null,
@@ -78,6 +100,7 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
         }
 
         SelectedAppState.None -> {
+          Timber.i("No app has been selected yet; opening host app")
           openHostApp(
               message = getString(R.string.service_message_choose_app_first),
           )
@@ -89,15 +112,19 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
   private fun launchTargetApp(componentName: String) {
     val launchIntent = LaunchIntentFactory.createTargetAppIntent(componentName)
     if (launchIntent == null) {
+      Timber.e("Failed to build launch intent for component=%s", componentName)
       openHostApp(message = getString(R.string.service_message_launch_failed))
       return
     }
 
     try {
       startActivity(launchIntent)
-    } catch (_: ActivityNotFoundException) {
+      Timber.i("Target app launch started for component=%s", componentName)
+    } catch (exception: ActivityNotFoundException) {
+      Timber.e(exception, "Target activity was not found for component=%s", componentName)
       openHostApp(message = getString(R.string.service_message_launch_failed))
-    } catch (_: SecurityException) {
+    } catch (exception: SecurityException) {
+      Timber.e(exception, "Security exception when launching component=%s", componentName)
       openHostApp(message = getString(R.string.service_message_launch_failed))
     }
   }

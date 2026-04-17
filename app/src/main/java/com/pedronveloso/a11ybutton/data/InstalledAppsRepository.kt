@@ -15,6 +15,7 @@ import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 import java.text.Collator
+import timber.log.Timber
 
 class InstalledAppsRepository(
     private val context: Context,
@@ -34,18 +35,33 @@ class InstalledAppsRepository(
             )
           }
           .sortedWith(compareBy(collator) { it.label.lowercase() })
+          .also { Timber.d("Loaded %s launchable apps", it.size) }
 
   fun validateSelection(settings: AppSettings): SelectedAppState {
     val packageName = settings.selectedPackageName ?: return SelectedAppState.None
     val componentName = settings.selectedComponentName ?: return SelectedAppState.None
+    Timber.d(
+        "Validating saved selection for package=%s component=%s",
+        packageName,
+        componentName,
+    )
     val component =
         ComponentName.unflattenFromString(componentName)
-            ?: return invalidSelection(settings, InvalidSelectionReason.NotLaunchable)
+            ?: run {
+              Timber.w("Saved component name is malformed: %s", componentName)
+              return invalidSelection(settings, InvalidSelectionReason.NotLaunchable)
+            }
 
     val activityInfo =
         try {
           packageManager.getActivityInfo(component, 0)
-        } catch (_: PackageManager.NameNotFoundException) {
+        } catch (exception: PackageManager.NameNotFoundException) {
+          Timber.w(
+              exception,
+              "Saved activity no longer resolves for package=%s component=%s",
+              packageName,
+              componentName,
+          )
           return when (resolveMissingComponentReason(packageName)) {
             InvalidSelectionReason.DisabledApp ->
                 invalidSelection(settings, InvalidSelectionReason.DisabledApp)
@@ -56,31 +72,46 @@ class InstalledAppsRepository(
         }
 
     if (!activityInfo.enabled || !activityInfo.applicationInfo.enabled) {
+      Timber.w("Saved app is disabled for package=%s component=%s", packageName, componentName)
       return invalidSelection(settings, InvalidSelectionReason.DisabledApp)
     }
 
     val matchingApp = getLaunchableApps().firstOrNull { it.componentName == componentName }
     return if (matchingApp != null) {
+      Timber.d("Saved selection is valid for component=%s", componentName)
       SelectedAppState.Valid(matchingApp)
     } else {
+      Timber.w("Saved component is no longer launchable: %s", componentName)
       invalidSelection(settings, InvalidSelectionReason.NotLaunchable)
     }
   }
 
   fun loadIcon(componentName: String): Drawable? {
-    val component = ComponentName.unflattenFromString(componentName) ?: return null
-    return runCatching { packageManager.getActivityIcon(component) }.getOrNull()
+    val component =
+        ComponentName.unflattenFromString(componentName)
+            ?: run {
+              Timber.w("Cannot load icon for malformed component name: %s", componentName)
+              return null
+            }
+    return runCatching { packageManager.getActivityIcon(component) }
+        .onFailure { exception ->
+          Timber.w(exception, "Failed to load icon for component=%s", componentName)
+        }
+        .getOrNull()
   }
 
   private fun resolveMissingComponentReason(packageName: String): InvalidSelectionReason =
       try {
         val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
         if (applicationInfo.enabled) {
+          Timber.i("Saved package exists but launcher component changed: %s", packageName)
           InvalidSelectionReason.MissingComponent
         } else {
+          Timber.i("Saved package is installed but disabled: %s", packageName)
           InvalidSelectionReason.DisabledApp
         }
-      } catch (_: PackageManager.NameNotFoundException) {
+      } catch (exception: PackageManager.NameNotFoundException) {
+        Timber.w(exception, "Saved package is no longer installed: %s", packageName)
         InvalidSelectionReason.MissingApp
       }
 

@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class MainViewModel(
     application: Application,
@@ -67,16 +68,24 @@ class MainViewModel(
       )
 
   init {
+    Timber.i("MainViewModel initialized")
     refreshServiceStatus()
     refreshAvailableApps()
     viewModelScope.launch {
       settingsState.collect { settings ->
+        Timber.d(
+            "Settings updated with package=%s component=%s disclosureAccepted=%s",
+            settings.selectedPackageName,
+            settings.selectedComponentName,
+            settings.disclosureAccepted,
+        )
         selectedAppState.value = installedAppsRepository.validateSelection(settings)
       }
     }
   }
 
   fun refreshServiceStatus() {
+    Timber.d("Refreshing accessibility service status")
     serviceEnabled.value =
         AccessibilityStatusRepository.isServiceEnabled(
             context = getApplication(),
@@ -85,10 +94,12 @@ class MainViewModel(
   }
 
   fun refreshSelection() {
+    Timber.d("Refreshing selected app state")
     selectedAppState.value = installedAppsRepository.validateSelection(settingsState.value)
   }
 
   fun refreshAvailableApps() {
+    Timber.d("Refreshing available launchable apps")
     availableApps.value =
         AppPickerApps(
             items =
@@ -99,18 +110,22 @@ class MainViewModel(
   }
 
   fun acceptDisclosure() {
+    Timber.i("Disclosure accepted from main screen")
     viewModelScope.launch { settingsRepository.setDisclosureAccepted(accepted = true) }
   }
 
   fun setServiceMessage(message: String?) {
+    Timber.i("Updating service message to %s", message)
     serviceMessage.value = message
   }
 
   fun clearServiceMessage() {
+    Timber.d("Clearing service message")
     serviceMessage.value = null
   }
 
   fun selectApp(app: InstalledApp) {
+    Timber.i("Selected app changed to package=%s component=%s", app.packageName, app.componentName)
     viewModelScope.launch {
       settingsRepository.updateSelection(
           packageName = app.packageName,
