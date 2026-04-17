@@ -49,6 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -302,6 +304,16 @@ fun HomeScreen(
                         text = invalidSelectionMessage(selectedAppState.reason),
                         style = MaterialTheme.typography.bodySmall,
                     )
+                    selectedAppState.packageName?.let { packageName ->
+                        Text(
+                            text =
+                                stringResource(
+                                    id = R.string.main_selected_app_package,
+                                    packageName,
+                                ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
 
                 SelectedAppState.None -> {
@@ -320,6 +332,21 @@ fun HomeScreen(
         SectionCard(title = stringResource(id = R.string.main_help_title)) {
             Text(
                 text = stringResource(id = R.string.main_help_body),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+
+        SectionCard(title = stringResource(id = R.string.main_troubleshooting_title)) {
+            Text(
+                text = stringResource(id = R.string.main_troubleshooting_button),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = stringResource(id = R.string.main_troubleshooting_nothing),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = stringResource(id = R.string.main_troubleshooting_missing_app),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
@@ -411,7 +438,13 @@ private fun AppPickerScreen(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .clickable { onAppSelected(app) },
+                                    .clickable(
+                                        onClickLabel =
+                                            contextString(
+                                                id = R.string.picker_select_app,
+                                                app.label,
+                                            ),
+                                    ) { onAppSelected(app) },
                         ) {
                             RowWithIcon(
                                 label = app.label,
@@ -510,6 +543,7 @@ private fun SectionCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
             )
             content()
         }
@@ -549,6 +583,12 @@ private fun invalidSelectionMessage(reason: InvalidSelectionReason): String =
         InvalidSelectionReason.NotLaunchable ->
             stringResource(id = R.string.main_selected_app_not_launchable)
     }
+
+@Composable
+private fun contextString(
+    id: Int,
+    argument: String,
+): String = stringResource(id = id, argument)
 
 @Preview(showBackground = true)
 @Composable
