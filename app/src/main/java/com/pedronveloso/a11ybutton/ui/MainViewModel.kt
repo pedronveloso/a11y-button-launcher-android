@@ -25,13 +25,13 @@ class MainViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val settingsRepository = SettingsRepository.fromContext(application)
-    private val accessibilityStatusRepository = AccessibilityStatusRepository(application)
     private val installedAppsRepository = InstalledAppsRepository(application)
     private val serviceComponent =
         ComponentName(application, ShortcutLaunchAccessibilityService::class.java)
     private val serviceEnabled = MutableStateFlow(false)
     private val selectedAppState = MutableStateFlow<SelectedAppState>(SelectedAppState.None)
     private val availableApps = MutableStateFlow(AppPickerApps())
+    private val serviceMessage = MutableStateFlow<String?>(null)
     private val settingsState =
         settingsRepository.settings.stateIn(
             scope = viewModelScope,
@@ -44,11 +44,13 @@ class MainViewModel(
             serviceEnabled,
             settingsState,
             selectedAppState,
-        ) { isServiceEnabled, settings, currentSelection ->
+            serviceMessage,
+        ) { isServiceEnabled, settings, currentSelection, currentServiceMessage ->
             deriveMainScreenState(
                 serviceEnabled = isServiceEnabled,
                 disclosureAccepted = settings.disclosureAccepted,
                 selectedAppState = currentSelection,
+                serviceMessage = currentServiceMessage,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -99,6 +101,14 @@ class MainViewModel(
         viewModelScope.launch {
             settingsRepository.setDisclosureAccepted(accepted = true)
         }
+    }
+
+    fun setServiceMessage(message: String?) {
+        serviceMessage.value = message
+    }
+
+    fun clearServiceMessage() {
+        serviceMessage.value = null
     }
 
     fun selectApp(app: InstalledApp) {

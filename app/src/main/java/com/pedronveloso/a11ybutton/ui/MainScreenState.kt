@@ -16,6 +16,7 @@ data class MainScreenState(
     val serviceEnabled: Boolean = false,
     val disclosureAccepted: Boolean = false,
     val selectedAppState: SelectedAppState = SelectedAppState.None,
+    val serviceMessage: String? = null,
     val readiness: SetupReadiness = SetupReadiness.NotSetUp,
 )
 
@@ -23,6 +24,7 @@ fun deriveMainScreenState(
     serviceEnabled: Boolean,
     disclosureAccepted: Boolean,
     selectedAppState: SelectedAppState,
+    serviceMessage: String? = null,
 ): MainScreenState {
     val selectedAppConfigured = selectedAppState is SelectedAppState.Valid
     val completedRequirements = listOf(serviceEnabled, selectedAppConfigured).count { it }
@@ -37,6 +39,7 @@ fun deriveMainScreenState(
         serviceEnabled = serviceEnabled,
         disclosureAccepted = disclosureAccepted,
         selectedAppState = selectedAppState,
+        serviceMessage = serviceMessage,
         readiness = readiness,
     )
 }

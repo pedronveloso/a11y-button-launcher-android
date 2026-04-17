@@ -32,6 +32,8 @@
     <string name="main_status_app_invalid">Needs reselection</string>
     <string name="main_help_title">Quick help</string>
     <string name="main_help_body">After changing the service in system settings, return here and the status will refresh automatically.</string>
+    <string name="main_message_title">Last trigger result</string>
+    <string name="main_message_dismiss">Dismiss</string>
     <string name="picker_title">Choose an app</string>
     <string name="picker_search_label">Search apps</string>
     <string name="picker_empty">No launchable apps match this search.</string>
@@ -39,4 +41,7 @@
     <string name="picker_icon_fallback">App</string>
     <string name="accessibility_service_label">A11Y Button Shortcut Service</string>
     <string name="accessibility_service_description">Launches your selected app from the accessibility button or shortcut.</string>
+    <string name="service_message_choose_app_first">Choose an app before using the Accessibility shortcut.</string>
+    <string name="service_message_invalid_selection">Your saved app is no longer available. Choose another app.</string>
+    <string name="service_message_launch_failed">The selected app could not be opened. Try choosing it again.</string>
 </resources>

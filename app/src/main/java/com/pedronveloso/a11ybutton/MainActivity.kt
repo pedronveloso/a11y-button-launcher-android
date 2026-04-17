@@ -7,6 +7,7 @@ package com.pedronveloso.a11ybutton
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import androidx.activity.viewModels
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -73,14 +74,32 @@ private enum class MainDestination {
 }
 
 class MainActivity : ComponentActivity() {
+    private val mainViewModel: MainViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        consumeIntent(intent)
         enableEdgeToEdge()
         setContent {
             A11YButtonTheme {
-                MainRoute()
+                MainRoute(viewModel = mainViewModel)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        consumeIntent(intent)
+    }
+
+    private fun consumeIntent(intent: Intent?) {
+        mainViewModel.setServiceMessage(intent?.getStringExtra(EXTRA_STATUS_MESSAGE))
+        intent?.removeExtra(EXTRA_STATUS_MESSAGE)
+    }
+
+    companion object {
+        const val EXTRA_STATUS_MESSAGE = "status_message"
     }
 }
 
@@ -126,6 +145,7 @@ fun MainRoute(
                         viewModel.refreshAvailableApps()
                         destination = MainDestination.Picker
                     },
+                    onDismissServiceMessage = viewModel::clearServiceMessage,
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -150,6 +170,7 @@ fun HomeScreen(
     screenState: MainScreenState,
     onAcceptDisclosure: () -> Unit,
     onChooseApp: () -> Unit,
+    onDismissServiceMessage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -170,6 +191,21 @@ fun HomeScreen(
             text = stringResource(id = R.string.main_header_body),
             style = MaterialTheme.typography.bodyLarge,
         )
+
+        screenState.serviceMessage?.let { message ->
+            SectionCard(title = stringResource(id = R.string.main_message_title)) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                OutlinedButton(
+                    onClick = onDismissServiceMessage,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(text = stringResource(id = R.string.main_message_dismiss))
+                }
+            }
+        }
 
         SectionCard(title = stringResource(id = R.string.main_setup_title)) {
             StatusRow(
@@ -536,6 +572,7 @@ private fun HomeScreenPreview() {
                 ),
             onAcceptDisclosure = {},
             onChooseApp = {},
+            onDismissServiceMessage = {},
         )
     }
 }

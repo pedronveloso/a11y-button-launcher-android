@@ -18,6 +18,7 @@ class MainScreenStateTest {
                 serviceEnabled = false,
                 disclosureAccepted = false,
                 selectedAppState = SelectedAppState.None,
+                serviceMessage = null,
             )
 
         assertEquals(SetupReadiness.NotSetUp, state.readiness)
@@ -30,6 +31,7 @@ class MainScreenStateTest {
                 serviceEnabled = true,
                 disclosureAccepted = true,
                 selectedAppState = SelectedAppState.None,
+                serviceMessage = null,
             )
 
         assertEquals(SetupReadiness.PartiallySetUp, state.readiness)
@@ -50,6 +52,7 @@ class MainScreenStateTest {
                                 label = "Reader",
                             ),
                     ),
+                serviceMessage = null,
             )
 
         assertEquals(SetupReadiness.Ready, state.readiness)
@@ -67,6 +70,7 @@ class MainScreenStateTest {
                         componentName = "com.example.reader/.HomeActivity",
                         reason = InvalidSelectionReason.MissingApp,
                     ),
+                serviceMessage = null,
             )
 
         assertEquals(SetupReadiness.PartiallySetUp, state.readiness)
