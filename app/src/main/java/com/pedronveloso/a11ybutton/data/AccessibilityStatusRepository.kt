@@ -13,44 +13,41 @@ import kotlinx.coroutines.flow.flow
 class AccessibilityStatusRepository(
     private val context: Context,
 ) {
-    fun observeServiceEnabled(serviceComponent: ComponentName): Flow<Boolean> =
-        flow {
-            emit(isServiceEnabled(context, serviceComponent))
-        }
+  fun observeServiceEnabled(serviceComponent: ComponentName): Flow<Boolean> = flow {
+    emit(isServiceEnabled(context, serviceComponent))
+  }
 
-    companion object {
-        fun isServiceEnabled(
-            context: Context,
-            serviceComponent: ComponentName,
-        ): Boolean {
-            val accessibilityEnabled =
-                Settings.Secure.getInt(
-                    context.contentResolver,
-                    Settings.Secure.ACCESSIBILITY_ENABLED,
-                    0,
-                ) == 1
+  companion object {
+    fun isServiceEnabled(
+        context: Context,
+        serviceComponent: ComponentName,
+    ): Boolean {
+      val accessibilityEnabled =
+          Settings.Secure.getInt(
+              context.contentResolver,
+              Settings.Secure.ACCESSIBILITY_ENABLED,
+              0,
+          ) == 1
 
-            if (!accessibilityEnabled) {
-                return false
-            }
+      if (!accessibilityEnabled) {
+        return false
+      }
 
-            val enabledServices =
-                Settings.Secure.getString(
-                    context.contentResolver,
-                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-                )
+      val enabledServices =
+          Settings.Secure.getString(
+              context.contentResolver,
+              Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+          )
 
-            return isEnabledServiceListed(enabledServices, serviceComponent.flattenToString())
-        }
-
-        internal fun isEnabledServiceListed(
-            enabledServices: String?,
-            serviceId: String,
-        ): Boolean =
-            enabledServices
-                ?.split(':')
-                ?.map(String::trim)
-                ?.any { it.equals(serviceId, ignoreCase = true) }
-                ?: false
+      return isEnabledServiceListed(enabledServices, serviceComponent.flattenToString())
     }
+
+    internal fun isEnabledServiceListed(
+        enabledServices: String?,
+        serviceId: String,
+    ): Boolean =
+        enabledServices?.split(':')?.map(String::trim)?.any {
+          it.equals(serviceId, ignoreCase = true)
+        } ?: false
+  }
 }
