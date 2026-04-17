@@ -1,10 +1,31 @@
 <resources>
     <string name="app_name">A11Y Button</string>
-    <string name="main_status_title">Foundation status</string>
-    <string name="main_status_service_enabled">Accessibility service enabled</string>
-    <string name="main_status_service_disabled">Accessibility service disabled</string>
-    <string name="main_status_disclosure_pending">Disclosure pending</string>
-    <string name="main_status_disclosure_accepted">Disclosure accepted</string>
+    <string name="main_header_title">Launch one app from the Accessibility shortcut</string>
+    <string name="main_header_body">Enable the service, choose one app, then use the system Accessibility button or shortcut to open it quickly.</string>
+    <string name="main_setup_title">Setup status</string>
+    <string name="main_setup_service_label">Accessibility Service</string>
+    <string name="main_setup_selected_app_label">Selected App</string>
+    <string name="main_setup_overall_label">Overall status</string>
+    <string name="main_status_service_enabled">Enabled</string>
+    <string name="main_status_service_disabled">Not enabled</string>
+    <string name="main_status_app_selected">Configured</string>
+    <string name="main_status_app_not_selected">Not selected</string>
+    <string name="main_status_readiness_not_setup">Not set up</string>
+    <string name="main_status_readiness_partial">Partially set up</string>
+    <string name="main_status_readiness_ready">Ready</string>
+    <string name="main_actions_title">Actions</string>
+    <string name="main_action_open_settings">Open Accessibility Settings</string>
+    <string name="main_action_choose_app">Choose App</string>
+    <string name="main_action_choose_app_pending">App picker arrives in the next phase.</string>
+    <string name="main_disclosure_title">Why Accessibility access is required</string>
+    <string name="main_disclosure_body">The service listens for the system Accessibility trigger and launches only the app you select. It does not add automation or overlays.</string>
+    <string name="main_disclosure_accept">I understand</string>
+    <string name="main_disclosure_accepted">Disclosure accepted</string>
+    <string name="main_selected_app_title">Selected app</string>
+    <string name="main_selected_app_empty">No app selected yet</string>
+    <string name="main_selected_app_help">Choose an app in the next step to make the shortcut ready.</string>
+    <string name="main_help_title">Quick help</string>
+    <string name="main_help_body">After changing the service in system settings, return here and the status will refresh automatically.</string>
     <string name="accessibility_service_label">A11Y Button Shortcut Service</string>
     <string name="accessibility_service_description">Launches your selected app from the accessibility button or shortcut.</string>
 </resources>

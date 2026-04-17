@@ -10,11 +10,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pedronveloso.a11ybutton.data.AccessibilityStatusRepository
 import com.pedronveloso.a11ybutton.data.SettingsRepository
-import com.pedronveloso.a11ybutton.model.FoundationStatus
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class MainViewModel(
     application: Application,
@@ -23,19 +24,40 @@ class MainViewModel(
     private val accessibilityStatusRepository = AccessibilityStatusRepository(application)
     private val serviceComponent =
         ComponentName(application, ShortcutLaunchAccessibilityService::class.java)
+    private val serviceEnabled = MutableStateFlow(false)
 
-    val foundationStatus =
+    val screenState =
         combine(
-            accessibilityStatusRepository.observeServiceEnabled(serviceComponent),
+            serviceEnabled,
             settingsRepository.settings,
-        ) { serviceEnabled, settings ->
-            FoundationStatus(
-                serviceEnabled = serviceEnabled,
+        ) { isServiceEnabled, settings ->
+            deriveMainScreenState(
+                serviceEnabled = isServiceEnabled,
                 disclosureAccepted = settings.disclosureAccepted,
+                selectedAppConfigured =
+                    settings.selectedPackageName != null && settings.selectedComponentName != null,
             )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
-            initialValue = FoundationStatus(),
+            initialValue = MainScreenState(),
         )
+
+    init {
+        refreshServiceStatus()
+    }
+
+    fun refreshServiceStatus() {
+        serviceEnabled.value =
+            AccessibilityStatusRepository.isServiceEnabled(
+                context = getApplication(),
+                serviceComponent = serviceComponent,
+            )
+    }
+
+    fun acceptDisclosure() {
+        viewModelScope.launch {
+            settingsRepository.setDisclosureAccepted(accepted = true)
+        }
+    }
 }
