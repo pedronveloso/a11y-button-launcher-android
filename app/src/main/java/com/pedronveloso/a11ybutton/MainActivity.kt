@@ -1,12 +1,11 @@
 /*
  * Copyright (C) 2026 Pedro Veloso
- * All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.pedronveloso.a11ybutton
 
 import android.content.Intent
 import android.os.Bundle
-import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -68,6 +67,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
 import com.pedronveloso.a11ybutton.logging.InMemoryLogStore
+import com.pedronveloso.a11ybutton.logging.LogEntries
 import com.pedronveloso.a11ybutton.logging.LogEntry
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
@@ -187,7 +187,7 @@ fun MainRoute(
     MainDestination.DebugMenu -> {
       BackHandler { destination = MainDestination.Home }
       DebugMenuScreen(
-          logCount = logEntries.size,
+          logCount = logEntries.items.size,
           onBack = { destination = MainDestination.Home },
           onOpenLogs = { destination = MainDestination.DebugLogs },
           modifier = modifier,
@@ -312,10 +312,18 @@ fun HomeScreen(
 
     SectionCard(title = stringResource(id = R.string.main_actions_title)) {
       Button(
-          onClick = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+          onClick = { SystemSettingsNavigator.openAccessibilitySettings(context) },
           modifier = Modifier.fillMaxWidth(),
       ) {
         Text(text = stringResource(id = R.string.main_action_open_settings))
+      }
+      OutlinedButton(
+          onClick = {
+            context.startActivity(Intent(context, AccessibilityServiceSettingsActivity::class.java))
+          },
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(text = stringResource(id = R.string.main_action_open_service_help))
       }
       OutlinedButton(
           onClick = onChooseApp,
@@ -410,6 +418,10 @@ fun HomeScreen(
       )
       Text(
           text = stringResource(id = R.string.main_troubleshooting_missing_app),
+          style = MaterialTheme.typography.bodyMedium,
+      )
+      Text(
+          text = stringResource(id = R.string.main_troubleshooting_background),
           style = MaterialTheme.typography.bodyMedium,
       )
     }
@@ -566,7 +578,7 @@ private fun DebugMenuScreen(
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun DebugLogsScreen(
-    entries: List<LogEntry>,
+    entries: LogEntries,
     onBack: () -> Unit,
     onClearLogs: () -> Unit,
     modifier: Modifier = Modifier,
@@ -592,7 +604,7 @@ private fun DebugLogsScreen(
         Text(text = stringResource(id = R.string.debug_logs_clear))
       }
 
-      if (entries.isEmpty()) {
+      if (entries.items.isEmpty()) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier.fillMaxSize(),
@@ -608,7 +620,7 @@ private fun DebugLogsScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
           items(
-              items = entries.asReversed(),
+              items = entries.items.asReversed(),
               key = { entry ->
                 "${entry.timestampMillis}:${entry.priority}:${entry.tag}:${entry.message}"
               },

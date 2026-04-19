@@ -13,10 +13,11 @@ spotless {
         """
         /*
          * Copyright (C) ${'$'}YEAR Pedro Veloso
-         * All rights reserved.
+         * SPDX-License-Identifier: Apache-2.0
          */
         """
             .trimIndent(),
+        "^(package|import|@file:)",
     )
     ktfmt()
     trimTrailingWhitespace()

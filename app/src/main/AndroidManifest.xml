@@ -21,6 +21,10 @@
         android:theme="@style/Theme.A11YButton">
 
         <activity
+            android:name=".AccessibilityServiceSettingsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

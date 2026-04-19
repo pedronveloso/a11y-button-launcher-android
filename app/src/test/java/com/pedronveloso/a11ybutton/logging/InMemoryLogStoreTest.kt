@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2026 Pedro Veloso
- * All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.pedronveloso.a11ybutton.logging
 
@@ -32,7 +32,7 @@ class InMemoryLogStoreTest {
     InMemoryLogStore.append(firstEntry)
     InMemoryLogStore.append(secondEntry)
 
-    assertEquals(listOf(firstEntry, secondEntry), InMemoryLogStore.entries.value)
+    assertEquals(listOf(firstEntry, secondEntry), InMemoryLogStore.entries.value.items)
   }
 
   @Test
@@ -51,7 +51,7 @@ class InMemoryLogStoreTest {
       )
     }
 
-    val entries = InMemoryLogStore.entries.value
+    val entries = InMemoryLogStore.entries.value.items
 
     assertEquals(300, entries.size)
     assertEquals("message-5", entries.first().message)

@@ -1,12 +1,13 @@
 /*
  * Copyright (C) 2026 Pedro Veloso
- * All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.pedronveloso.a11ybutton.service
 
 import android.accessibilityservice.AccessibilityButtonController
 import android.accessibilityservice.AccessibilityService
 import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
@@ -28,14 +29,26 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
   private val accessibilityButtonCallback =
       object : AccessibilityButtonController.AccessibilityButtonCallback() {
         override fun onClicked(controller: AccessibilityButtonController) {
+          ServiceDiagnosticsStore.recordButtonPressed()
           Timber.i("Accessibility button pressed")
           handleTrigger()
+        }
+
+        override fun onAvailabilityChanged(
+            controller: AccessibilityButtonController,
+            available: Boolean,
+        ) {
+          ServiceDiagnosticsStore.recordButtonAvailability(available)
+          Timber.i("Accessibility button availability changed to %s", available)
         }
       }
 
   override fun onServiceConnected() {
     super.onServiceConnected()
+    ServiceDiagnosticsStore.recordServiceConnected()
     Timber.i("Accessibility service connected")
+    val isButtonAvailable = accessibilityButtonController.isAccessibilityButtonAvailable
+    Timber.i("Accessibility button availability sampled on connect=%s", isButtonAvailable)
 
     accessibilityButtonController.registerAccessibilityButtonCallback(
         accessibilityButtonCallback,
@@ -44,6 +57,7 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
   }
 
   override fun onDestroy() {
+    ServiceDiagnosticsStore.recordServiceDestroyed()
     Timber.i("Accessibility service destroyed")
     accessibilityButtonController.unregisterAccessibilityButtonCallback(accessibilityButtonCallback)
     serviceScope.cancel()
@@ -55,10 +69,19 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
   }
 
   override fun onInterrupt() {
+    ServiceDiagnosticsStore.recordServiceInterrupted()
+    Timber.w("Accessibility service interrupted")
     // No long-running feedback is active.
   }
 
+  override fun onUnbind(intent: Intent): Boolean {
+    ServiceDiagnosticsStore.recordServiceUnbound()
+    Timber.w("Accessibility service unbound")
+    return super.onUnbind(intent)
+  }
+
   private fun handleTrigger() {
+    ServiceDiagnosticsStore.recordTriggerHandled()
     Timber.i("Accessibility shortcut triggered")
     serviceScope.launch {
       val settingsRepository =

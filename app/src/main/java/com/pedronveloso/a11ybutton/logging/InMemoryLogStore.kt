@@ -1,9 +1,10 @@
 /*
  * Copyright (C) 2026 Pedro Veloso
- * All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
  */
 package com.pedronveloso.a11ybutton.logging
 
+import androidx.compose.runtime.Immutable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,17 +18,24 @@ data class LogEntry(
     val throwable: Throwable?,
 )
 
+@Immutable
+data class LogEntries(
+    val items: List<LogEntry> = emptyList(),
+)
+
 object InMemoryLogStore {
   private const val MAX_ENTRIES = 300
 
-  private val _entries = MutableStateFlow<List<LogEntry>>(emptyList())
-  val entries: StateFlow<List<LogEntry>> = _entries.asStateFlow()
+  private val _entries = MutableStateFlow(LogEntries())
+  val entries: StateFlow<LogEntries> = _entries.asStateFlow()
 
   fun append(entry: LogEntry) {
-    _entries.update { existing -> (existing + entry).takeLast(MAX_ENTRIES) }
+    _entries.update { existing ->
+      LogEntries(items = (existing.items + entry).takeLast(MAX_ENTRIES))
+    }
   }
 
   fun clear() {
-    _entries.value = emptyList()
+    _entries.value = LogEntries()
   }
 }

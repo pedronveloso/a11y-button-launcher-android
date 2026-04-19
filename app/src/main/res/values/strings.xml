@@ -15,6 +15,7 @@
     <string name="main_status_readiness_ready">Ready</string>
     <string name="main_actions_title">Actions</string>
     <string name="main_action_open_settings">Open Accessibility Settings</string>
+    <string name="main_action_open_service_help">Open Service Help</string>
     <string name="main_action_choose_app">Choose App</string>
     <string name="main_action_change_app">Change App</string>
     <string name="main_disclosure_title">Why Accessibility access is required</string>
@@ -39,6 +40,7 @@
     <string name="main_troubleshooting_button">I don\'t see the accessibility button: Check that the service is enabled. Some devices hide the button depending on navigation mode, but the Accessibility shortcut can still work.</string>
     <string name="main_troubleshooting_nothing">Pressing the button does nothing: Return here and confirm the service is still enabled and one app is selected.</string>
     <string name="main_troubleshooting_missing_app">My selected app no longer opens: Choose the app again. Its launcher entry may have changed or the app may be disabled.</string>
+    <string name="main_troubleshooting_background">On Xiaomi and some other devices, aggressive battery and background restrictions can stop the accessibility service from staying active after the app is backgrounded. Open Service Help for device-specific steps.</string>
     <string name="picker_title">Choose an app</string>
     <string name="picker_search_label">Search apps</string>
     <string name="picker_empty">No launchable apps match this search.</string>
@@ -53,6 +55,17 @@
     <string name="debug_logs_empty">No logs captured yet.</string>
     <string name="debug_logs_clear">Clear logs</string>
     <string name="debug_log_entry_fallback_tag">App</string>
+    <string name="service_settings_title">Service Help</string>
+    <string name="service_settings_diagnostics_title">Diagnostics</string>
+    <string name="service_settings_actions_title">Actions</string>
+    <string name="service_settings_last_event_label">Last lifecycle event</string>
+    <string name="service_settings_last_event_at_label">Last lifecycle event time</string>
+    <string name="service_settings_last_button_press_label">Last button press seen</string>
+    <string name="service_settings_last_trigger_label">Last trigger handled</string>
+    <string name="service_settings_status_unknown">Unknown</string>
+    <string name="service_settings_open_accessibility">Open Accessibility Settings</string>
+    <string name="service_settings_open_battery">Open Battery Settings</string>
+    <string name="service_settings_open_app_info">Open App Info</string>
     <string name="accessibility_service_label">A11Y Button Shortcut Service</string>
     <string name="accessibility_service_description">Launches your selected app from the accessibility button or shortcut.</string>
     <string name="service_message_choose_app_first">Choose an app before using the Accessibility shortcut.</string>
