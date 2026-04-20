@@ -4,12 +4,17 @@
  */
 package com.pedronveloso.a11ybutton
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -80,6 +85,7 @@ import com.pedronveloso.a11ybutton.logging.LogEntry
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
 import com.pedronveloso.a11ybutton.service.ServiceDiagnostics
 import com.pedronveloso.a11ybutton.service.ServiceDiagnosticsStore
 import com.pedronveloso.a11ybutton.ui.AppPickerApps
@@ -162,6 +168,7 @@ fun MainRoute(
         viewModel.refreshServiceStatus()
         viewModel.refreshSelection()
         viewModel.refreshBackgroundProtectionStatus()
+        ServiceStatusNotifier.cancelNotification(context)
       }
     }
     lifecycleOwner.lifecycle.addObserver(observer)
@@ -715,12 +722,58 @@ private fun SetupScreen(
       }
     }
 
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      NotificationPermissionCard()
+    }
+
     SectionCard(title = stringResource(id = R.string.setup_primary_help)) {
       OutlinedButton(
           onClick = onOpenFaq,
           modifier = Modifier.fillMaxWidth(),
       ) {
         Text(text = stringResource(id = R.string.home_open_faq))
+      }
+    }
+  }
+}
+
+@Composable
+private fun NotificationPermissionCard(modifier: Modifier = Modifier) {
+  val context = LocalContext.current
+
+  fun isGranted(): Boolean =
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+      } else {
+        true
+      }
+
+  var permissionGranted by remember { mutableStateOf(isGranted()) }
+
+  val launcher =
+      rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        permissionGranted = granted
+      }
+
+  if (!permissionGranted) {
+    SectionCard(
+        title = stringResource(id = R.string.setup_notifications_title),
+        modifier = modifier,
+    ) {
+      Text(
+          text = stringResource(id = R.string.setup_notifications_body),
+          style = MaterialTheme.typography.bodyMedium,
+      )
+      Button(
+          onClick = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+              launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+          },
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(text = stringResource(id = R.string.setup_notifications_action))
       }
     }
   }

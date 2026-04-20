@@ -113,6 +113,15 @@
     <string name="service_settings_open_app_info">Open App Info</string>
     <string name="accessibility_service_label">A11Y Button Shortcut Service</string>
     <string name="accessibility_service_description">Launches your selected app from the accessibility button or shortcut.</string>
+    <string name="notification_channel_name">Service status</string>
+    <string name="notification_channel_description">Alerts when the accessibility service needs to be re-enabled.</string>
+    <string name="notification_service_disabled_title">Accessibility shortcut is off</string>
+    <string name="notification_service_disabled_body">The accessibility service was disabled. This can happen after an app update. Tap Open Settings to re-enable it.</string>
+    <string name="notification_action_open_settings">Open Settings</string>
+    <string name="notification_action_opt_out">Don\'t remind me</string>
+    <string name="setup_notifications_title">Stay notified</string>
+    <string name="setup_notifications_body">Allow notifications so A11Y Button can alert you if the accessibility service is ever disabled — for example, after an app update.</string>
+    <string name="setup_notifications_action">Enable notifications</string>
     <string name="service_message_choose_app_first">Choose an app before using the Accessibility shortcut.</string>
     <string name="service_message_invalid_selection">Your saved app is no longer available. Choose another app.</string>
     <string name="service_message_launch_failed">The selected app could not be opened. Try choosing it again.</string>

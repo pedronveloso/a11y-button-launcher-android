@@ -77,8 +77,7 @@ data class A11YButtonStatusPalette(
 )
 
 @Composable
-fun a11YButtonStatusPalette(): A11YButtonStatusPalette =
-    MaterialTheme.colorScheme.toStatusPalette()
+fun a11YButtonStatusPalette(): A11YButtonStatusPalette = MaterialTheme.colorScheme.toStatusPalette()
 
 @Composable
 fun A11YButtonTheme(
