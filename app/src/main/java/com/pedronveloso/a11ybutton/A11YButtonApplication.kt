@@ -5,13 +5,8 @@
 package com.pedronveloso.a11ybutton
 
 import android.app.Application
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.pedronveloso.a11ybutton.logging.InMemoryLogTree
 import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
-import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
-import java.util.concurrent.TimeUnit
 import timber.log.Timber
 
 class A11YButtonApplication : Application() {
@@ -25,12 +20,5 @@ class A11YButtonApplication : Application() {
     }
 
     ServiceStatusNotifier.createChannel(this)
-
-    WorkManager.getInstance(this)
-        .enqueueUniquePeriodicWork(
-            "service_check",
-            ExistingPeriodicWorkPolicy.KEEP,
-            PeriodicWorkRequestBuilder<ServiceCheckWorker>(6, TimeUnit.HOURS).build(),
-        )
   }
 }

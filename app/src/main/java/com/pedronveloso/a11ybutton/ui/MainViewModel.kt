@@ -9,6 +9,9 @@ import android.content.ComponentName
 import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.pedronveloso.a11ybutton.SystemSettingsNavigator
 import com.pedronveloso.a11ybutton.data.AccessibilityStatusRepository
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
@@ -17,6 +20,8 @@ import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
+import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -68,6 +73,7 @@ class MainViewModel(
                         recentsLockConfirmed = settings.xiaomiRecentsLockConfirmed,
                     ),
                 serviceMessage = currentServiceMessage,
+                notificationsEnabled = settings.notificationsEnabled,
             )
           }
           .stateIn(
@@ -154,6 +160,19 @@ class MainViewModel(
           componentName = app.componentName,
       )
       refreshSelection()
+    }
+  }
+
+  fun enableNotifications() {
+    Timber.i("User opted in to background service monitoring")
+    viewModelScope.launch {
+      settingsRepository.setNotificationsEnabled(true)
+      WorkManager.getInstance(getApplication())
+          .enqueueUniquePeriodicWork(
+              "service_check",
+              ExistingPeriodicWorkPolicy.KEEP,
+              PeriodicWorkRequestBuilder<ServiceCheckWorker>(6, TimeUnit.HOURS).build(),
+          )
     }
   }
 

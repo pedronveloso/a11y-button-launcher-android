@@ -6,7 +6,6 @@ package com.pedronveloso.a11ybutton
 
 import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -197,6 +196,7 @@ fun MainRoute(
               },
               onOpenFaq = { destination = MainDestination.Faq },
               onDismissServiceMessage = viewModel::clearServiceMessage,
+              onEnableNotifications = viewModel::enableNotifications,
               modifier = Modifier.padding(innerPadding),
           )
         }
@@ -227,6 +227,7 @@ fun MainRoute(
               SystemSettingsNavigator.openAccessibilitySettings(context)
             },
             onOpenFaq = { destination = MainDestination.Faq },
+            onEnableNotifications = viewModel::enableNotifications,
             modifier = Modifier.padding(innerPadding),
         )
       }
@@ -361,6 +362,7 @@ fun HomeScreen(
     onChooseApp: () -> Unit,
     onOpenFaq: () -> Unit,
     onDismissServiceMessage: () -> Unit,
+    onEnableNotifications: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   Column(
@@ -392,6 +394,13 @@ fun HomeScreen(
         selectedAppState = screenState.selectedAppState,
         onChooseApp = onChooseApp,
     )
+
+    if (screenState.isReady) {
+      NotificationPermissionCard(
+          notificationsEnabled = screenState.notificationsEnabled,
+          onEnable = onEnableNotifications,
+      )
+    }
 
     SectionCard(title = stringResource(id = R.string.home_support_title)) {
       OutlinedButton(
@@ -626,6 +635,7 @@ private fun SetupScreen(
     onOpenBackgroundProtection: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
     onOpenFaq: () -> Unit,
+    onEnableNotifications: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   Column(
@@ -722,9 +732,10 @@ private fun SetupScreen(
       }
     }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      NotificationPermissionCard()
-    }
+    NotificationPermissionCard(
+        notificationsEnabled = screenState.notificationsEnabled,
+        onEnable = onEnableNotifications,
+    )
 
     SectionCard(title = stringResource(id = R.string.setup_primary_help)) {
       OutlinedButton(
@@ -738,43 +749,37 @@ private fun SetupScreen(
 }
 
 @Composable
-private fun NotificationPermissionCard(modifier: Modifier = Modifier) {
-  val context = LocalContext.current
-
-  fun isGranted(): Boolean =
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED
-      } else {
-        true
-      }
-
-  var permissionGranted by remember { mutableStateOf(isGranted()) }
+private fun NotificationPermissionCard(
+    notificationsEnabled: Boolean,
+    onEnable: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  if (notificationsEnabled) return
 
   val launcher =
       rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        permissionGranted = granted
+        if (granted) onEnable()
       }
 
-  if (!permissionGranted) {
-    SectionCard(
-        title = stringResource(id = R.string.setup_notifications_title),
-        modifier = modifier,
+  SectionCard(
+      title = stringResource(id = R.string.setup_notifications_title),
+      modifier = modifier,
+  ) {
+    Text(
+        text = stringResource(id = R.string.setup_notifications_body),
+        style = MaterialTheme.typography.bodyMedium,
+    )
+    Button(
+        onClick = {
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+          } else {
+            onEnable()
+          }
+        },
+        modifier = Modifier.fillMaxWidth(),
     ) {
-      Text(
-          text = stringResource(id = R.string.setup_notifications_body),
-          style = MaterialTheme.typography.bodyMedium,
-      )
-      Button(
-          onClick = {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-              launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-          },
-          modifier = Modifier.fillMaxWidth(),
-      ) {
-        Text(text = stringResource(id = R.string.setup_notifications_action))
-      }
+      Text(text = stringResource(id = R.string.setup_notifications_action))
     }
   }
 }
@@ -1484,6 +1489,7 @@ private fun HomeScreenPreview() {
         onChooseApp = {},
         onOpenFaq = {},
         onDismissServiceMessage = {},
+        onEnableNotifications = {},
     )
   }
 }
@@ -1499,6 +1505,7 @@ private fun SetupScreenPreview() {
         onOpenBackgroundProtection = {},
         onOpenAccessibilitySettings = {},
         onOpenFaq = {},
+        onEnableNotifications = {},
     )
   }
 }

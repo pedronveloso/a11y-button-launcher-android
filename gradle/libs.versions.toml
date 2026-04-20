@@ -13,7 +13,7 @@ lifecycle = "2.9.4"
 datastore = "1.1.7"
 coroutines = "1.10.2"
 timber = "5.0.1"
-workmanager = "2.10.1"
+workmanager = "2.11.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

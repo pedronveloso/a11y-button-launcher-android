@@ -46,6 +46,11 @@ class SettingsRepository(
     dataStore.edit { preferences -> preferences[DISCLOSURE_ACCEPTED_KEY] = accepted }
   }
 
+  suspend fun setNotificationsEnabled(enabled: Boolean) {
+    Timber.i("Updating notifications enabled to %s", enabled)
+    dataStore.edit { preferences -> preferences[NOTIFICATIONS_ENABLED_KEY] = enabled }
+  }
+
   suspend fun setNotificationsOptedOut(optedOut: Boolean) {
     Timber.i("Updating notifications opted out to %s", optedOut)
     dataStore.edit { preferences -> preferences[NOTIFICATIONS_OPTED_OUT_KEY] = optedOut }
@@ -78,6 +83,7 @@ class SettingsRepository(
     internal val XIAOMI_RECENTS_LOCK_CONFIRMED_KEY =
         booleanPreferencesKey("xiaomi_recents_lock_confirmed")
     internal val NOTIFICATIONS_OPTED_OUT_KEY = booleanPreferencesKey("notifications_opted_out")
+    internal val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
 
     fun fromContext(context: Context): SettingsRepository = SettingsRepository(context.dataStore)
 
@@ -88,6 +94,7 @@ class SettingsRepository(
             disclosureAccepted = preferences[DISCLOSURE_ACCEPTED_KEY] ?: false,
             xiaomiRecentsLockConfirmed = preferences[XIAOMI_RECENTS_LOCK_CONFIRMED_KEY] ?: false,
             notificationsOptedOut = preferences[NOTIFICATIONS_OPTED_OUT_KEY] ?: false,
+            notificationsEnabled = preferences[NOTIFICATIONS_ENABLED_KEY] ?: false,
         )
   }
 }
