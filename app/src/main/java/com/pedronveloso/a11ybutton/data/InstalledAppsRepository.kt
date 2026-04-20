@@ -8,8 +8,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.os.Process
+import android.util.LruCache
+import androidx.core.graphics.drawable.toBitmap
 import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
@@ -100,6 +103,16 @@ class InstalledAppsRepository(
         .getOrNull()
   }
 
+  fun loadIconBitmap(componentName: String, sizePx: Int): Bitmap? {
+    iconCache.get(componentName)?.let {
+      return it
+    }
+
+    return loadIcon(componentName)?.toBitmap(width = sizePx, height = sizePx)?.also {
+      iconCache.put(componentName, it)
+    }
+  }
+
   private fun resolveMissingComponentReason(packageName: String): InvalidSelectionReason =
       try {
         val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
@@ -124,4 +137,8 @@ class InstalledAppsRepository(
           componentName = settings.selectedComponentName,
           reason = reason,
       )
+
+  private companion object {
+    val iconCache = LruCache<String, Bitmap>(64)
+  }
 }

@@ -6,6 +6,7 @@ package com.pedronveloso.a11ybutton.service
 
 import android.accessibilityservice.AccessibilityButtonController
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Handler
@@ -45,6 +46,12 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
 
   override fun onServiceConnected() {
     super.onServiceConnected()
+    serviceInfo =
+        serviceInfo.apply {
+          eventTypes = 0
+          notificationTimeout = 0
+          feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
+        }
     ServiceDiagnosticsStore.recordServiceConnected()
     Timber.i("Accessibility service connected")
     val isButtonAvailable = accessibilityButtonController.isAccessibilityButtonAvailable

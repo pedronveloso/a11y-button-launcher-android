@@ -38,6 +38,27 @@ class MainScreenStateTest {
   }
 
   @Test
+  fun deriveMainScreenState_isPartiallySetUp_whenDisclosureIsMissing() {
+    val state =
+        deriveMainScreenState(
+            serviceEnabled = true,
+            disclosureAccepted = false,
+            selectedAppState =
+                SelectedAppState.Valid(
+                    app =
+                        InstalledApp(
+                            packageName = "com.example.reader",
+                            componentName = "com.example.reader/.HomeActivity",
+                            label = "Reader",
+                        ),
+                ),
+            serviceMessage = null,
+        )
+
+    assertEquals(SetupReadiness.PartiallySetUp, state.readiness)
+  }
+
+  @Test
   fun deriveMainScreenState_isReady_whenServiceAndSelectionExist() {
     val state =
         deriveMainScreenState(

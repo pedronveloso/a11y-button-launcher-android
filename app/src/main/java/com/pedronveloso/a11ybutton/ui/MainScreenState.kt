@@ -27,11 +27,13 @@ fun deriveMainScreenState(
     serviceMessage: String? = null,
 ): MainScreenState {
   val selectedAppConfigured = selectedAppState is SelectedAppState.Valid
-  val completedRequirements = listOf(serviceEnabled, selectedAppConfigured).count { it }
+  val completedRequirements =
+      listOf(serviceEnabled, disclosureAccepted, selectedAppConfigured).count { it }
   val readiness =
       when (completedRequirements) {
-        2 -> SetupReadiness.Ready
-        1 -> SetupReadiness.PartiallySetUp
+        3 -> SetupReadiness.Ready
+        1,
+        2 -> SetupReadiness.PartiallySetUp
         else -> SetupReadiness.NotSetUp
       }
 

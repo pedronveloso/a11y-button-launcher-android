@@ -30,11 +30,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -65,10 +69,15 @@ private fun AccessibilityServiceSettingsRoute(
   val context = LocalContext.current
   val lifecycleOwner = LocalLifecycleOwner.current
   val diagnostics by ServiceDiagnosticsStore.state.collectAsStateWithLifecycle()
+  var isIgnoringBatteryOptimizations by remember {
+    mutableStateOf(SystemSettingsNavigator.isIgnoringBatteryOptimizations(context))
+  }
 
   DisposableEffect(lifecycleOwner, context) {
     fun logRefresh() {
       Timber.d("Refreshed service settings screen diagnostics")
+      isIgnoringBatteryOptimizations =
+          SystemSettingsNavigator.isIgnoringBatteryOptimizations(context)
     }
 
     logRefresh()
@@ -84,10 +93,12 @@ private fun AccessibilityServiceSettingsRoute(
 
   AccessibilityServiceSettingsScreen(
       diagnostics = diagnostics,
+      isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizations,
       onBack = onBack,
       onOpenAccessibilitySettings = { SystemSettingsNavigator.openAccessibilitySettings(context) },
       onOpenBatterySettings = { SystemSettingsNavigator.openBatteryOptimizationSettings(context) },
       onOpenAppDetails = { SystemSettingsNavigator.openAppDetails(context) },
+      onOpenXiaomiHelp = { SystemSettingsNavigator.openXiaomiHelp(context) },
       modifier = modifier,
   )
 }
@@ -96,10 +107,12 @@ private fun AccessibilityServiceSettingsRoute(
 @OptIn(ExperimentalMaterial3Api::class)
 fun AccessibilityServiceSettingsScreen(
     diagnostics: ServiceDiagnostics,
+    isIgnoringBatteryOptimizations: Boolean,
     onBack: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
     onOpenBatterySettings: () -> Unit,
     onOpenAppDetails: () -> Unit,
+    onOpenXiaomiHelp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   Scaffold(
@@ -147,6 +160,15 @@ fun AccessibilityServiceSettingsScreen(
             label = stringResource(id = R.string.service_settings_last_trigger_label),
             value = formatTimestampOrUnknown(diagnostics.lastTriggerAtMillis),
         )
+        StatusValue(
+            label = stringResource(id = R.string.service_settings_battery_optimization_label),
+            value =
+                if (isIgnoringBatteryOptimizations) {
+                  stringResource(id = R.string.service_settings_battery_optimization_disabled)
+                } else {
+                  stringResource(id = R.string.service_settings_battery_optimization_enabled)
+                },
+        )
       }
 
       SettingsSectionCard(title = stringResource(id = R.string.service_settings_actions_title)) {
@@ -167,6 +189,12 @@ fun AccessibilityServiceSettingsScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
           Text(text = stringResource(id = R.string.service_settings_open_app_info))
+        }
+        OutlinedButton(
+            onClick = onOpenXiaomiHelp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.service_settings_open_xiaomi_help))
         }
       }
     }
@@ -211,6 +239,8 @@ private fun StatusValue(
     Text(
         text = value,
         style = MaterialTheme.typography.bodyLarge,
+        maxLines = 3,
+        overflow = TextOverflow.Ellipsis,
     )
   }
 }

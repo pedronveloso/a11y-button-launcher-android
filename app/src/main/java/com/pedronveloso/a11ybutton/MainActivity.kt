@@ -54,12 +54,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -80,6 +82,8 @@ import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 private enum class MainDestination {
@@ -268,6 +272,7 @@ fun HomeScreen(
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         )
         OutlinedButton(
             onClick = onDismissServiceMessage,
@@ -654,20 +659,29 @@ private fun LogEntryCard(
         Text(
             text = formatLogTimestamp(entry.timestampMillis),
             style = MaterialTheme.typography.labelMedium,
-        )
-        Text(
-            text = entry.tag ?: stringResource(id = R.string.debug_log_entry_fallback_tag),
-            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
       }
       Text(
+          text = entry.tag ?: stringResource(id = R.string.debug_log_entry_fallback_tag),
+          style = MaterialTheme.typography.labelMedium,
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis,
+      )
+      Text(
           text = entry.message,
           style = MaterialTheme.typography.bodyMedium,
+          maxLines = 6,
+          overflow = TextOverflow.Ellipsis,
       )
       entry.throwable?.let { throwable ->
         Text(
             text = "${throwable::class.java.simpleName}: ${throwable.message.orEmpty()}",
             style = MaterialTheme.typography.bodySmall,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
         )
       }
     }
@@ -696,15 +710,19 @@ private fun RowWithIcon(
       )
       Column(
           verticalArrangement = Arrangement.spacedBy(2.dp),
-          modifier = Modifier.fillMaxWidth(),
+          modifier = Modifier.weight(1f),
       ) {
         Text(
             text = label,
             style = MaterialTheme.typography.titleMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = supportingText,
             style = MaterialTheme.typography.bodySmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
       }
     }
@@ -722,7 +740,8 @@ private fun AppIcon(
   val repository = remember(context) { InstalledAppsRepository(context) }
   val iconBitmap by
       produceState(initialValue = null as android.graphics.Bitmap?, componentName) {
-        value = repository.loadIcon(componentName)?.toBitmap(width = 96, height = 96)
+        value =
+            withContext(Dispatchers.IO) { repository.loadIconBitmap(componentName, sizePx = 96) }
       }
 
   if (iconBitmap != null) {
