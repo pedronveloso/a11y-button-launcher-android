@@ -46,25 +46,24 @@ class HomeScreenTest {
                         ),
                     readiness = SetupReadiness.Ready,
                 ),
-            onAcceptDisclosure = {},
+            onOpenSetup = {},
             onChooseApp = {},
+            onOpenFaq = {},
             onDismissServiceMessage = {},
         )
       }
     }
 
-    composeTestRule.onNodeWithText("Enabled").assertIsDisplayed()
-    composeTestRule.onNodeWithText("Configured").assertIsDisplayed()
-    composeTestRule.onNodeWithText("Ready").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Shortcut ready").assertIsDisplayed()
     composeTestRule.onNodeWithText("Change App").assertIsDisplayed()
     composeTestRule.onNodeWithText("Reader").assertIsDisplayed()
     composeTestRule.onNodeWithText("com.example.reader").assertIsDisplayed()
-    composeTestRule.onNodeWithText("Disclosure accepted").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Open FAQ").assertIsDisplayed()
   }
 
   @Test
-  fun homeScreen_invokesCallbacksForDisclosureAndServiceMessageDismiss() {
-    var disclosureAccepted = false
+  fun homeScreen_invokesSetupAndDismissCallbacks_whenNotReady() {
+    var setupOpened = false
     var messageDismissed = false
 
     composeTestRule.setContent {
@@ -78,18 +77,19 @@ class HomeScreenTest {
                     serviceMessage = "Choose an app before using the Accessibility shortcut.",
                     readiness = SetupReadiness.NotSetUp,
                 ),
-            onAcceptDisclosure = { disclosureAccepted = true },
+            onOpenSetup = { setupOpened = true },
             onChooseApp = {},
+            onOpenFaq = {},
             onDismissServiceMessage = { messageDismissed = true },
         )
       }
     }
 
-    composeTestRule.onNodeWithText("I understand").performClick()
+    composeTestRule.onNodeWithText("Open Setup").performClick()
     composeTestRule.onNodeWithText("Dismiss").performClick()
 
     composeTestRule.runOnIdle {
-      assertTrue(disclosureAccepted)
+      assertTrue(setupOpened)
       assertTrue(messageDismissed)
     }
   }
@@ -111,19 +111,19 @@ class HomeScreenTest {
                         ),
                     readiness = SetupReadiness.PartiallySetUp,
                 ),
-            onAcceptDisclosure = {},
+            onOpenSetup = {},
             onChooseApp = {},
+            onOpenFaq = {},
             onDismissServiceMessage = {},
         )
       }
     }
 
-    composeTestRule.onNodeWithText("Needs reselection").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Setup needed").assertIsDisplayed()
     composeTestRule.onNodeWithText("Saved selection needs attention").assertIsDisplayed()
     composeTestRule.onNodeWithText("The selected app is no longer installed.").assertIsDisplayed()
     composeTestRule.onNodeWithText("Package: com.example.reader").assertIsDisplayed()
-    composeTestRule.onNodeWithText("Partially set up").assertIsDisplayed()
-    composeTestRule.onNodeWithText("Choose App").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Change App").assertIsDisplayed()
   }
 
   @Test
@@ -140,8 +140,9 @@ class HomeScreenTest {
                     selectedAppState = SelectedAppState.None,
                     readiness = SetupReadiness.NotSetUp,
                 ),
-            onAcceptDisclosure = {},
+            onOpenSetup = {},
             onChooseApp = { chooseAppCount += 1 },
+            onOpenFaq = {},
             onDismissServiceMessage = {},
         )
       }

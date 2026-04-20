@@ -4,18 +4,16 @@
  */
 package com.pedronveloso.a11ybutton
 
+import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
-import androidx.core.net.toUri
 import timber.log.Timber
 
 object SystemSettingsNavigator {
-  private val XIAOMI_HELP_URI: Uri = "https://dontkillmyapp.com/xiaomi".toUri()
-
   fun isIgnoringBatteryOptimizations(context: Context): Boolean {
     val powerManager = context.getSystemService(PowerManager::class.java)
     return powerManager?.isIgnoringBatteryOptimizations(context.packageName) == true
@@ -37,6 +35,17 @@ object SystemSettingsNavigator {
     )
   }
 
+  @SuppressLint("BatteryLife")
+  fun requestIgnoreBatteryOptimizations(context: Context) {
+    val packageUri = Uri.fromParts("package", context.packageName, null)
+    launchActivity(
+        context = context,
+        intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).setData(packageUri),
+        description = "battery optimization exemption prompt",
+        fallback = { openBatteryOptimizationSettings(context) },
+    )
+  }
+
   fun openAppDetails(context: Context) {
     launchActivity(
         context = context,
@@ -47,11 +56,11 @@ object SystemSettingsNavigator {
     )
   }
 
-  fun openXiaomiHelp(context: Context) {
+  fun openApp(context: Context) {
     launchActivity(
         context = context,
-        intent = Intent(Intent.ACTION_VIEW, XIAOMI_HELP_URI),
-        description = "Xiaomi background restriction help",
+        intent = Intent(context, MainActivity::class.java),
+        description = "app",
     )
   }
 
@@ -59,6 +68,7 @@ object SystemSettingsNavigator {
       context: Context,
       intent: Intent,
       description: String,
+      fallback: (() -> Unit)? = null,
   ) {
     val safeIntent = intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     try {
@@ -66,6 +76,7 @@ object SystemSettingsNavigator {
       context.startActivity(safeIntent)
     } catch (exception: ActivityNotFoundException) {
       Timber.e(exception, "Unable to open %s", description)
+      fallback?.invoke()
     }
   }
 }

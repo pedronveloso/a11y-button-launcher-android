@@ -8,4 +8,5 @@ data class AppSettings(
     val selectedPackageName: String? = null,
     val selectedComponentName: String? = null,
     val disclosureAccepted: Boolean = false,
+    val xiaomiRecentsLockConfirmed: Boolean = false,
 )

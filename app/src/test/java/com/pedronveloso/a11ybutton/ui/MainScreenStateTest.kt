@@ -96,4 +96,57 @@ class MainScreenStateTest {
 
     assertEquals(SetupReadiness.PartiallySetUp, state.readiness)
   }
+
+  @Test
+  fun deriveMainScreenState_isPartiallySetUp_whenXiaomiBackgroundProtectionIsIncomplete() {
+    val state =
+        deriveMainScreenState(
+            serviceEnabled = true,
+            disclosureAccepted = true,
+            selectedAppState =
+                SelectedAppState.Valid(
+                    app =
+                        InstalledApp(
+                            packageName = "com.example.reader",
+                            componentName = "com.example.reader/.HomeActivity",
+                            label = "Reader",
+                        ),
+                ),
+            backgroundProtection =
+                BackgroundProtectionState(
+                    requiredBrand = BackgroundProtectionBrand.Xiaomi,
+                    batteryOptimizationIgnored = true,
+                    recentsLockConfirmed = false,
+                ),
+            serviceMessage = null,
+        )
+
+    assertEquals(SetupReadiness.PartiallySetUp, state.readiness)
+  }
+
+  @Test
+  fun deriveMainScreenState_isReady_whenHuaweiBackgroundProtectionIsComplete() {
+    val state =
+        deriveMainScreenState(
+            serviceEnabled = true,
+            disclosureAccepted = true,
+            selectedAppState =
+                SelectedAppState.Valid(
+                    app =
+                        InstalledApp(
+                            packageName = "com.example.reader",
+                            componentName = "com.example.reader/.HomeActivity",
+                            label = "Reader",
+                        ),
+                ),
+            backgroundProtection =
+                BackgroundProtectionState(
+                    requiredBrand = BackgroundProtectionBrand.Huawei,
+                    batteryOptimizationIgnored = true,
+                ),
+            serviceMessage = null,
+        )
+
+    assertEquals(SetupReadiness.Ready, state.readiness)
+  }
 }

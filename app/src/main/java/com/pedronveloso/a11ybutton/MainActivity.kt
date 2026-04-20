@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,6 +54,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -74,7 +78,10 @@ import com.pedronveloso.a11ybutton.logging.LogEntry
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.service.ServiceDiagnostics
+import com.pedronveloso.a11ybutton.service.ServiceDiagnosticsStore
 import com.pedronveloso.a11ybutton.ui.AppPickerApps
+import com.pedronveloso.a11ybutton.ui.BackgroundProtectionBrand
 import com.pedronveloso.a11ybutton.ui.MainScreenState
 import com.pedronveloso.a11ybutton.ui.MainViewModel
 import com.pedronveloso.a11ybutton.ui.SetupReadiness
@@ -88,9 +95,17 @@ import timber.log.Timber
 
 private enum class MainDestination {
   Home,
+  Setup,
+  BackgroundProtection,
+  Faq,
   Picker,
   DebugMenu,
   DebugLogs,
+}
+
+private enum class StatusTone {
+  Positive,
+  Attention,
 }
 
 class MainActivity : ComponentActivity() {
@@ -132,7 +147,9 @@ fun MainRoute(
   val screenState by viewModel.screenState.collectAsStateWithLifecycle()
   val pickerApps by viewModel.pickerApps.collectAsStateWithLifecycle()
   val logEntries by InMemoryLogStore.entries.collectAsStateWithLifecycle()
+  val diagnostics by ServiceDiagnosticsStore.state.collectAsStateWithLifecycle()
   val lifecycleOwner = LocalLifecycleOwner.current
+  val context = LocalContext.current
   var destination by rememberSaveable { mutableStateOf(MainDestination.Home) }
   val canOpenDebugTools = BuildConfig.DEBUG
 
@@ -141,6 +158,7 @@ fun MainRoute(
       if (event == Lifecycle.Event.ON_RESUME) {
         viewModel.refreshServiceStatus()
         viewModel.refreshSelection()
+        viewModel.refreshBackgroundProtectionStatus()
         viewModel.refreshAvailableApps()
       }
     }
@@ -163,15 +181,95 @@ fun MainRoute(
         ) { innerPadding ->
           HomeScreen(
               screenState = screenState,
-              onAcceptDisclosure = viewModel::acceptDisclosure,
+              onOpenSetup = { destination = MainDestination.Setup },
               onChooseApp = {
                 viewModel.refreshAvailableApps()
                 destination = MainDestination.Picker
               },
+              onOpenFaq = { destination = MainDestination.Faq },
               onDismissServiceMessage = viewModel::clearServiceMessage,
               modifier = Modifier.padding(innerPadding),
           )
         }
+
+    MainDestination.Setup -> {
+      BackHandler { destination = MainDestination.Home }
+      Scaffold(
+          modifier = modifier.fillMaxSize(),
+          topBar = {
+            AppTopBar(
+                title = stringResource(id = R.string.setup_title),
+                showBack = true,
+                onBack = { destination = MainDestination.Home },
+                showDebugAction = canOpenDebugTools,
+                onDebugClick = { destination = MainDestination.DebugMenu },
+            )
+          },
+      ) { innerPadding ->
+        SetupScreen(
+            screenState = screenState,
+            onAcceptDisclosure = viewModel::acceptDisclosure,
+            onChooseApp = {
+              viewModel.refreshAvailableApps()
+              destination = MainDestination.Picker
+            },
+            onOpenBackgroundProtection = { destination = MainDestination.BackgroundProtection },
+            onOpenAccessibilitySettings = {
+              SystemSettingsNavigator.openAccessibilitySettings(context)
+            },
+            onOpenFaq = { destination = MainDestination.Faq },
+            modifier = Modifier.padding(innerPadding),
+        )
+      }
+    }
+
+    MainDestination.BackgroundProtection -> {
+      BackHandler { destination = MainDestination.Setup }
+      Scaffold(
+          modifier = modifier.fillMaxSize(),
+          topBar = {
+            AppTopBar(
+                title = stringResource(id = R.string.background_protection_title),
+                showBack = true,
+                onBack = { destination = MainDestination.Setup },
+                showDebugAction = canOpenDebugTools,
+                onDebugClick = { destination = MainDestination.DebugMenu },
+            )
+          },
+      ) { innerPadding ->
+        BackgroundProtectionScreen(
+            screenState = screenState,
+            onRequestBatteryOptimizationExemption = {
+              SystemSettingsNavigator.requestIgnoreBatteryOptimizations(context)
+            },
+            onOpenBatterySettings = {
+              SystemSettingsNavigator.openBatteryOptimizationSettings(context)
+            },
+            onConfirmXiaomiLock = viewModel::confirmXiaomiRecentsLock,
+            modifier = Modifier.padding(innerPadding),
+        )
+      }
+    }
+
+    MainDestination.Faq -> {
+      BackHandler { destination = MainDestination.Home }
+      Scaffold(
+          modifier = modifier.fillMaxSize(),
+          topBar = {
+            AppTopBar(
+                title = stringResource(id = R.string.faq_title),
+                showBack = true,
+                onBack = { destination = MainDestination.Home },
+                showDebugAction = canOpenDebugTools,
+                onDebugClick = { destination = MainDestination.DebugMenu },
+            )
+          },
+      ) { innerPadding ->
+        FaqScreen(
+            modifier = Modifier.padding(innerPadding),
+        )
+      }
+    }
 
     MainDestination.Picker -> {
       BackHandler { destination = MainDestination.Home }
@@ -192,6 +290,7 @@ fun MainRoute(
       BackHandler { destination = MainDestination.Home }
       DebugMenuScreen(
           logCount = logEntries.items.size,
+          diagnostics = diagnostics,
           onBack = { destination = MainDestination.Home },
           onOpenLogs = { destination = MainDestination.DebugLogs },
           modifier = modifier,
@@ -247,26 +346,16 @@ private fun AppTopBar(
 @Composable
 fun HomeScreen(
     screenState: MainScreenState,
-    onAcceptDisclosure: () -> Unit,
+    onOpenSetup: () -> Unit,
     onChooseApp: () -> Unit,
+    onOpenFaq: () -> Unit,
     onDismissServiceMessage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  val context = LocalContext.current
-
   Column(
       verticalArrangement = Arrangement.spacedBy(16.dp),
       modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
   ) {
-    Text(
-        text = stringResource(id = R.string.main_header_title),
-        style = MaterialTheme.typography.headlineSmall,
-    )
-    Text(
-        text = stringResource(id = R.string.main_header_body),
-        style = MaterialTheme.typography.bodyLarge,
-    )
-
     screenState.serviceMessage?.let { message ->
       SectionCard(title = stringResource(id = R.string.main_message_title)) {
         Text(
@@ -283,7 +372,265 @@ fun HomeScreen(
       }
     }
 
-    SectionCard(title = stringResource(id = R.string.main_setup_title)) {
+    StatusSummaryCard(
+        screenState = screenState,
+        onOpenSetup = onOpenSetup,
+    )
+
+    SelectedAppCard(
+        selectedAppState = screenState.selectedAppState,
+        onChooseApp = onChooseApp,
+    )
+
+    SectionCard(title = stringResource(id = R.string.home_support_title)) {
+      OutlinedButton(
+          onClick = onOpenFaq,
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(text = stringResource(id = R.string.home_open_faq))
+      }
+      if (!screenState.isReady) {
+        Button(
+            onClick = onOpenSetup,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.home_open_setup))
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun StatusSummaryCard(
+    screenState: MainScreenState,
+    onOpenSetup: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  val tone = if (screenState.isReady) StatusTone.Positive else StatusTone.Attention
+  val colors = statusCardColors(tone)
+  Card(
+      modifier = modifier.fillMaxWidth(),
+      colors =
+          CardDefaults.cardColors(
+              containerColor = colors.container,
+              contentColor = colors.content,
+          ),
+  ) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.padding(20.dp),
+    ) {
+      Text(
+          text =
+              if (screenState.isReady) {
+                stringResource(id = R.string.home_ready_title)
+              } else {
+                stringResource(id = R.string.home_attention_title)
+              },
+          style = MaterialTheme.typography.headlineSmall,
+      )
+      Text(
+          text =
+              if (screenState.isReady) {
+                stringResource(id = R.string.home_ready_body)
+              } else {
+                stringResource(id = R.string.home_attention_body)
+              },
+          style = MaterialTheme.typography.bodyMedium,
+      )
+      StatusPillRow(screenState = screenState)
+      if (!screenState.isReady) {
+        Button(
+            onClick = onOpenSetup,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.home_open_setup))
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun StatusPillRow(
+    screenState: MainScreenState,
+    modifier: Modifier = Modifier,
+) {
+  Column(
+      verticalArrangement = Arrangement.spacedBy(12.dp),
+      modifier = modifier.fillMaxWidth(),
+  ) {
+    StatusBadge(
+        label = stringResource(id = R.string.main_setup_overall_label),
+        value = readinessLabel(screenState.readiness),
+        tone = if (screenState.isReady) StatusTone.Positive else StatusTone.Attention,
+    )
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+      StatusBadge(
+          label = stringResource(id = R.string.main_setup_service_label),
+          value =
+              if (screenState.serviceEnabled) {
+                stringResource(id = R.string.main_status_service_enabled)
+              } else {
+                stringResource(id = R.string.main_status_service_disabled)
+              },
+          tone = if (screenState.serviceEnabled) StatusTone.Positive else StatusTone.Attention,
+          modifier = Modifier.weight(1f),
+      )
+      StatusBadge(
+          label = stringResource(id = R.string.main_setup_selected_app_label),
+          value = selectedAppStatusLabel(screenState.selectedAppState),
+          tone =
+              if (screenState.selectedAppState is SelectedAppState.Valid) {
+                StatusTone.Positive
+              } else {
+                StatusTone.Attention
+              },
+          modifier = Modifier.weight(1f),
+      )
+    }
+    if (screenState.backgroundProtection.isRequired) {
+      StatusBadge(
+          label = stringResource(id = R.string.setup_background_protection_label),
+          value = backgroundProtectionStatusLabel(screenState),
+          tone =
+              if (screenState.backgroundProtection.isComplete) {
+                StatusTone.Positive
+              } else {
+                StatusTone.Attention
+              },
+      )
+    }
+  }
+}
+
+@Composable
+private fun StatusBadge(
+    label: String,
+    value: String,
+    tone: StatusTone,
+    modifier: Modifier = Modifier,
+) {
+  val colors = statusBadgeColors(tone)
+  Column(
+      verticalArrangement = Arrangement.spacedBy(4.dp),
+      modifier =
+          modifier
+              .background(
+                  color = colors.container,
+                  shape = RoundedCornerShape(20.dp),
+              )
+              .padding(horizontal = 14.dp, vertical = 12.dp),
+  ) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelSmall,
+        color = colors.content,
+    )
+    Text(
+        text = value,
+        style = MaterialTheme.typography.titleSmall,
+        color = colors.content,
+    )
+  }
+}
+
+@Composable
+private fun SelectedAppCard(
+    selectedAppState: SelectedAppState,
+    onChooseApp: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  SectionCard(
+      title = stringResource(id = R.string.main_selected_app_title),
+      modifier = modifier,
+  ) {
+    when (selectedAppState) {
+      is SelectedAppState.Valid -> {
+        RowWithIcon(
+            label = selectedAppState.app.label,
+            supportingText = selectedAppState.app.packageName,
+            componentName = selectedAppState.app.componentName,
+        )
+        OutlinedButton(
+            onClick = onChooseApp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.home_selected_app_change))
+        }
+      }
+
+      is SelectedAppState.Invalid -> {
+        Text(
+            text = stringResource(id = R.string.main_selected_app_invalid),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Text(
+            text = invalidSelectionMessage(selectedAppState.reason),
+            style = MaterialTheme.typography.bodySmall,
+        )
+        selectedAppState.packageName?.let { packageName ->
+          Text(
+              text = stringResource(id = R.string.main_selected_app_package, packageName),
+              style = MaterialTheme.typography.bodySmall,
+          )
+        }
+        Button(
+            onClick = onChooseApp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.home_selected_app_change))
+        }
+      }
+
+      SelectedAppState.None -> {
+        Text(
+            text = stringResource(id = R.string.main_selected_app_empty),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Text(
+            text = stringResource(id = R.string.main_selected_app_help),
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Button(
+            onClick = onChooseApp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.home_selected_app_choose))
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun SetupScreen(
+    screenState: MainScreenState,
+    onAcceptDisclosure: () -> Unit,
+    onChooseApp: () -> Unit,
+    onOpenBackgroundProtection: () -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
+    onOpenFaq: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  Column(
+      verticalArrangement = Arrangement.spacedBy(16.dp),
+      modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+  ) {
+    Text(
+        text = stringResource(id = R.string.setup_intro_title),
+        style = MaterialTheme.typography.headlineSmall,
+    )
+    Text(
+        text = stringResource(id = R.string.setup_intro_body),
+        style = MaterialTheme.typography.bodyLarge,
+    )
+
+    SectionCard(title = stringResource(id = R.string.setup_checklist_title)) {
       StatusRow(
           label = stringResource(id = R.string.main_setup_service_label),
           value =
@@ -294,53 +641,22 @@ fun HomeScreen(
               },
       )
       StatusRow(
-          label = stringResource(id = R.string.main_setup_selected_app_label),
+          label = stringResource(id = R.string.setup_disclosure_label),
           value =
-              when (screenState.selectedAppState) {
-                is SelectedAppState.Valid -> stringResource(id = R.string.main_status_app_selected)
-                is SelectedAppState.Invalid -> stringResource(id = R.string.main_status_app_invalid)
-                SelectedAppState.None -> stringResource(id = R.string.main_status_app_not_selected)
+              if (screenState.disclosureAccepted) {
+                stringResource(id = R.string.main_disclosure_accepted)
+              } else {
+                stringResource(id = R.string.main_status_readiness_not_setup)
               },
       )
       StatusRow(
-          label = stringResource(id = R.string.main_setup_overall_label),
-          value =
-              when (screenState.readiness) {
-                SetupReadiness.NotSetUp ->
-                    stringResource(id = R.string.main_status_readiness_not_setup)
-                SetupReadiness.PartiallySetUp ->
-                    stringResource(id = R.string.main_status_readiness_partial)
-                SetupReadiness.Ready -> stringResource(id = R.string.main_status_readiness_ready)
-              },
+          label = stringResource(id = R.string.main_setup_selected_app_label),
+          value = selectedAppStatusLabel(screenState.selectedAppState),
       )
-    }
-
-    SectionCard(title = stringResource(id = R.string.main_actions_title)) {
-      Button(
-          onClick = { SystemSettingsNavigator.openAccessibilitySettings(context) },
-          modifier = Modifier.fillMaxWidth(),
-      ) {
-        Text(text = stringResource(id = R.string.main_action_open_settings))
-      }
-      OutlinedButton(
-          onClick = {
-            context.startActivity(Intent(context, AccessibilityServiceSettingsActivity::class.java))
-          },
-          modifier = Modifier.fillMaxWidth(),
-      ) {
-        Text(text = stringResource(id = R.string.main_action_open_service_help))
-      }
-      OutlinedButton(
-          onClick = onChooseApp,
-          modifier = Modifier.fillMaxWidth(),
-      ) {
-        Text(
-            text =
-                if (screenState.selectedAppState is SelectedAppState.Valid) {
-                  stringResource(id = R.string.main_action_change_app)
-                } else {
-                  stringResource(id = R.string.main_action_choose_app)
-                },
+      if (screenState.backgroundProtection.isRequired) {
+        StatusRow(
+            label = stringResource(id = R.string.setup_background_protection_label),
+            value = backgroundProtectionStatusLabel(screenState),
         )
       }
     }
@@ -360,76 +676,190 @@ fun HomeScreen(
             onClick = onAcceptDisclosure,
             modifier = Modifier.fillMaxWidth(),
         ) {
-          Text(text = stringResource(id = R.string.main_disclosure_accept))
+          Text(text = stringResource(id = R.string.setup_action_accept_disclosure))
         }
       }
     }
 
-    SectionCard(title = stringResource(id = R.string.main_selected_app_title)) {
-      when (val selectedAppState = screenState.selectedAppState) {
-        is SelectedAppState.Valid -> {
-          SelectedAppRow(app = selectedAppState.app)
+    SectionCard(title = stringResource(id = R.string.main_actions_title)) {
+      Button(
+          onClick = onOpenAccessibilitySettings,
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(text = stringResource(id = R.string.main_action_open_settings))
+      }
+      OutlinedButton(
+          onClick = onChooseApp,
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(
+            text =
+                if (screenState.selectedAppState is SelectedAppState.Valid) {
+                  stringResource(id = R.string.main_action_change_app)
+                } else {
+                  stringResource(id = R.string.main_action_choose_app)
+                },
+        )
+      }
+      if (screenState.backgroundProtection.isRequired) {
+        OutlinedButton(
+            onClick = onOpenBackgroundProtection,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.setup_action_open_background_protection))
         }
+      }
+    }
 
-        is SelectedAppState.Invalid -> {
-          Text(
-              text = stringResource(id = R.string.main_selected_app_invalid),
-              style = MaterialTheme.typography.bodyLarge,
+    SectionCard(title = stringResource(id = R.string.setup_primary_help)) {
+      OutlinedButton(
+          onClick = onOpenFaq,
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(text = stringResource(id = R.string.home_open_faq))
+      }
+    }
+  }
+}
+
+@Composable
+private fun BackgroundProtectionScreen(
+    screenState: MainScreenState,
+    onRequestBatteryOptimizationExemption: () -> Unit,
+    onOpenBatterySettings: () -> Unit,
+    onConfirmXiaomiLock: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  val backgroundProtection = screenState.backgroundProtection
+  Column(
+      verticalArrangement = Arrangement.spacedBy(16.dp),
+      modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+  ) {
+    if (!backgroundProtection.isRequired) {
+      Text(
+          text = stringResource(id = R.string.background_protection_not_required_title),
+          style = MaterialTheme.typography.headlineSmall,
+      )
+      Text(
+          text = stringResource(id = R.string.background_protection_not_required_body),
+          style = MaterialTheme.typography.bodyLarge,
+      )
+    } else {
+      Text(
+          text = stringResource(id = R.string.background_protection_intro_title),
+          style = MaterialTheme.typography.headlineSmall,
+      )
+      Text(
+          text = backgroundProtectionIntroBody(backgroundProtection.requiredBrand),
+          style = MaterialTheme.typography.bodyLarge,
+      )
+
+      SectionCard(title = stringResource(id = R.string.setup_checklist_title)) {
+        StatusRow(
+            label = stringResource(id = R.string.background_protection_battery_title),
+            value =
+                if (backgroundProtection.batteryOptimizationIgnored) {
+                  stringResource(id = R.string.background_protection_battery_done)
+                } else {
+                  stringResource(id = R.string.background_protection_battery_pending)
+                },
+        )
+        if (backgroundProtection.requiresRecentsLock) {
+          StatusRow(
+              label = stringResource(id = R.string.background_protection_xiaomi_lock_title),
+              value =
+                  if (backgroundProtection.recentsLockConfirmed) {
+                    stringResource(id = R.string.background_protection_xiaomi_lock_done)
+                  } else {
+                    stringResource(id = R.string.background_protection_xiaomi_lock_pending)
+                  },
           )
+        }
+      }
+
+      SectionCard(title = stringResource(id = R.string.background_protection_actions_title)) {
+        Button(
+            onClick = onRequestBatteryOptimizationExemption,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.background_protection_request_battery_exemption))
+        }
+        OutlinedButton(
+            onClick = onOpenBatterySettings,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.background_protection_open_battery_settings))
+        }
+      }
+
+      if (backgroundProtection.requiresRecentsLock) {
+        SectionCard(title = stringResource(id = R.string.background_protection_xiaomi_title)) {
           Text(
-              text = invalidSelectionMessage(selectedAppState.reason),
-              style = MaterialTheme.typography.bodySmall,
+              text = stringResource(id = R.string.background_protection_xiaomi_body),
+              style = MaterialTheme.typography.bodyMedium,
           )
-          selectedAppState.packageName?.let { packageName ->
-            Text(
-                text =
-                    stringResource(
-                        id = R.string.main_selected_app_package,
-                        packageName,
-                    ),
-                style = MaterialTheme.typography.bodySmall,
-            )
+          OutlinedButton(
+              onClick = onConfirmXiaomiLock,
+              modifier = Modifier.fillMaxWidth(),
+          ) {
+            Text(text = stringResource(id = R.string.background_protection_confirm_xiaomi_lock))
           }
         }
-
-        SelectedAppState.None -> {
-          Text(
-              text = stringResource(id = R.string.main_selected_app_empty),
-              style = MaterialTheme.typography.bodyLarge,
-          )
-          Text(
-              text = stringResource(id = R.string.main_selected_app_help),
-              style = MaterialTheme.typography.bodySmall,
-          )
-        }
       }
     }
+  }
+}
 
-    SectionCard(title = stringResource(id = R.string.main_help_title)) {
-      Text(
-          text = stringResource(id = R.string.main_help_body),
-          style = MaterialTheme.typography.bodyMedium,
-      )
-    }
+@Composable
+private fun FaqScreen(
+    modifier: Modifier = Modifier,
+) {
+  Column(
+      verticalArrangement = Arrangement.spacedBy(16.dp),
+      modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+  ) {
+    Text(
+        text = stringResource(id = R.string.faq_intro_title),
+        style = MaterialTheme.typography.headlineSmall,
+    )
+    Text(
+        text = stringResource(id = R.string.faq_intro_body),
+        style = MaterialTheme.typography.bodyLarge,
+    )
 
-    SectionCard(title = stringResource(id = R.string.main_troubleshooting_title)) {
-      Text(
-          text = stringResource(id = R.string.main_troubleshooting_button),
-          style = MaterialTheme.typography.bodyMedium,
-      )
-      Text(
-          text = stringResource(id = R.string.main_troubleshooting_nothing),
-          style = MaterialTheme.typography.bodyMedium,
-      )
-      Text(
-          text = stringResource(id = R.string.main_troubleshooting_missing_app),
-          style = MaterialTheme.typography.bodyMedium,
-      )
-      Text(
-          text = stringResource(id = R.string.main_troubleshooting_background),
-          style = MaterialTheme.typography.bodyMedium,
-      )
-    }
+    FaqEntry(
+        question = stringResource(id = R.string.faq_question_button),
+        answer = stringResource(id = R.string.main_troubleshooting_button),
+    )
+    FaqEntry(
+        question = stringResource(id = R.string.faq_question_nothing),
+        answer = stringResource(id = R.string.main_troubleshooting_nothing),
+    )
+    FaqEntry(
+        question = stringResource(id = R.string.faq_question_missing_app),
+        answer = stringResource(id = R.string.main_troubleshooting_missing_app),
+    )
+    FaqEntry(
+        question = stringResource(id = R.string.faq_question_background),
+        answer = stringResource(id = R.string.main_troubleshooting_background),
+    )
+  }
+}
+
+@Composable
+private fun FaqEntry(
+    question: String,
+    answer: String,
+    modifier: Modifier = Modifier,
+) {
+  SectionCard(
+      title = question,
+      modifier = modifier,
+  ) {
+    Text(
+        text = answer,
+        style = MaterialTheme.typography.bodyMedium,
+    )
   }
 }
 
@@ -546,6 +976,7 @@ private fun AppPickerScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun DebugMenuScreen(
     logCount: Int,
+    diagnostics: ServiceDiagnostics,
     onBack: () -> Unit,
     onOpenLogs: () -> Unit,
     modifier: Modifier = Modifier,
@@ -575,6 +1006,37 @@ private fun DebugMenuScreen(
         ) {
           Text(text = stringResource(id = R.string.debug_menu_open_logs))
         }
+      }
+      SectionCard(title = stringResource(id = R.string.debug_diagnostics_title)) {
+        StatusRow(
+            label = stringResource(id = R.string.debug_service_connection_label),
+            value =
+                if (diagnostics.serviceConnected) {
+                  stringResource(id = R.string.debug_service_connection_connected)
+                } else {
+                  stringResource(id = R.string.debug_service_connection_disconnected)
+                },
+        )
+        StatusRow(
+            label = stringResource(id = R.string.debug_accessibility_button_label),
+            value = accessibilityButtonAvailabilityLabel(diagnostics.accessibilityButtonAvailable),
+        )
+        StatusRow(
+            label = stringResource(id = R.string.debug_last_event_label),
+            value = diagnostics.lastLifecycleEvent ?: stringResource(id = R.string.debug_unknown),
+        )
+        StatusRow(
+            label = stringResource(id = R.string.debug_last_event_at_label),
+            value = formatDebugTimestampOrUnknown(diagnostics.lastLifecycleEventAtMillis),
+        )
+        StatusRow(
+            label = stringResource(id = R.string.debug_last_button_press_label),
+            value = formatDebugTimestampOrUnknown(diagnostics.lastButtonPressAtMillis),
+        )
+        StatusRow(
+            label = stringResource(id = R.string.debug_last_trigger_label),
+            value = formatDebugTimestampOrUnknown(diagnostics.lastTriggerAtMillis),
+        )
       }
     }
   }
@@ -699,7 +1161,7 @@ private fun RowWithIcon(
       verticalArrangement = Arrangement.spacedBy(12.dp),
       modifier = modifier.fillMaxWidth(),
   ) {
-    androidx.compose.foundation.layout.Row(
+    Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth(),
@@ -803,6 +1265,73 @@ private fun StatusRow(
 }
 
 @Composable
+private fun statusCardColors(tone: StatusTone): StatusColors =
+    when (tone) {
+      StatusTone.Positive ->
+          StatusColors(
+              container = Color(0xFFDCEFD8),
+              content = Color(0xFF1E4D24),
+          )
+
+      StatusTone.Attention ->
+          StatusColors(
+              container = MaterialTheme.colorScheme.errorContainer,
+              content = MaterialTheme.colorScheme.onErrorContainer,
+          )
+    }
+
+@Composable
+private fun statusBadgeColors(tone: StatusTone): StatusColors {
+  val base = statusCardColors(tone)
+  return StatusColors(
+      container = base.content.copy(alpha = 0.10f),
+      content = base.content,
+  )
+}
+
+private data class StatusColors(
+    val container: Color,
+    val content: Color,
+)
+
+@Composable
+private fun readinessLabel(readiness: SetupReadiness): String =
+    when (readiness) {
+      SetupReadiness.NotSetUp -> stringResource(id = R.string.main_status_readiness_not_setup)
+      SetupReadiness.PartiallySetUp -> stringResource(id = R.string.main_status_readiness_partial)
+      SetupReadiness.Ready -> stringResource(id = R.string.main_status_readiness_ready)
+    }
+
+@Composable
+private fun backgroundProtectionStatusLabel(screenState: MainScreenState): String {
+  val backgroundProtection = screenState.backgroundProtection
+  return when {
+    !backgroundProtection.isRequired ->
+        stringResource(id = R.string.background_protection_not_required_status)
+    backgroundProtection.isComplete -> stringResource(id = R.string.main_status_readiness_ready)
+    else -> stringResource(id = R.string.background_protection_pending_status)
+  }
+}
+
+@Composable
+private fun backgroundProtectionIntroBody(requiredBrand: BackgroundProtectionBrand?): String =
+    when (requiredBrand) {
+      BackgroundProtectionBrand.Xiaomi ->
+          stringResource(id = R.string.background_protection_intro_body_xiaomi)
+      BackgroundProtectionBrand.Huawei ->
+          stringResource(id = R.string.background_protection_intro_body_huawei)
+      null -> stringResource(id = R.string.background_protection_not_required_body)
+    }
+
+@Composable
+private fun selectedAppStatusLabel(selectedAppState: SelectedAppState): String =
+    when (selectedAppState) {
+      is SelectedAppState.Valid -> stringResource(id = R.string.main_status_app_selected)
+      is SelectedAppState.Invalid -> stringResource(id = R.string.main_status_app_invalid)
+      SelectedAppState.None -> stringResource(id = R.string.main_status_app_not_selected)
+    }
+
+@Composable
 private fun invalidSelectionMessage(reason: InvalidSelectionReason): String =
     when (reason) {
       InvalidSelectionReason.MissingApp -> stringResource(id = R.string.main_selected_app_missing)
@@ -833,6 +1362,18 @@ private fun formatLogPriority(priority: Int): String =
 private fun formatLogTimestamp(timestampMillis: Long): String =
     LOG_TIMESTAMP_FORMATTER.format(Instant.ofEpochMilli(timestampMillis))
 
+@Composable
+private fun accessibilityButtonAvailabilityLabel(isAvailable: Boolean?): String =
+    when (isAvailable) {
+      true -> stringResource(id = R.string.debug_accessibility_button_available)
+      false -> stringResource(id = R.string.debug_accessibility_button_unavailable)
+      null -> stringResource(id = R.string.debug_unknown)
+    }
+
+@Composable
+private fun formatDebugTimestampOrUnknown(timestampMillis: Long?): String =
+    timestampMillis?.let(::formatLogTimestamp) ?: stringResource(id = R.string.debug_unknown)
+
 private val LOG_TIMESTAMP_FORMATTER: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
 
@@ -856,9 +1397,25 @@ private fun HomeScreenPreview() {
                     ),
                 readiness = SetupReadiness.Ready,
             ),
+        onOpenSetup = {},
+        onChooseApp = {},
+        onOpenFaq = {},
+        onDismissServiceMessage = {},
+    )
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SetupScreenPreview() {
+  A11YButtonTheme {
+    SetupScreen(
+        screenState = MainScreenState(),
         onAcceptDisclosure = {},
         onChooseApp = {},
-        onDismissServiceMessage = {},
+        onOpenBackgroundProtection = {},
+        onOpenAccessibilitySettings = {},
+        onOpenFaq = {},
     )
   }
 }

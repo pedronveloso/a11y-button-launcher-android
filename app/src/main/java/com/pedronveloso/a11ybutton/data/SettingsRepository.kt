@@ -46,6 +46,11 @@ class SettingsRepository(
     dataStore.edit { preferences -> preferences[DISCLOSURE_ACCEPTED_KEY] = accepted }
   }
 
+  suspend fun setXiaomiRecentsLockConfirmed(confirmed: Boolean) {
+    Timber.i("Updating Xiaomi recents lock confirmation to %s", confirmed)
+    dataStore.edit { preferences -> preferences[XIAOMI_RECENTS_LOCK_CONFIRMED_KEY] = confirmed }
+  }
+
   suspend fun updateSelection(
       packageName: String?,
       componentName: String?,
@@ -65,6 +70,8 @@ class SettingsRepository(
     internal val SELECTED_PACKAGE_NAME_KEY = stringPreferencesKey("selected_package_name")
     internal val SELECTED_COMPONENT_NAME_KEY = stringPreferencesKey("selected_component_name")
     internal val DISCLOSURE_ACCEPTED_KEY = booleanPreferencesKey("disclosure_accepted")
+    internal val XIAOMI_RECENTS_LOCK_CONFIRMED_KEY =
+        booleanPreferencesKey("xiaomi_recents_lock_confirmed")
 
     fun fromContext(context: Context): SettingsRepository = SettingsRepository(context.dataStore)
 
@@ -73,6 +80,7 @@ class SettingsRepository(
             selectedPackageName = preferences[SELECTED_PACKAGE_NAME_KEY].nullIfBlank(),
             selectedComponentName = preferences[SELECTED_COMPONENT_NAME_KEY].nullIfBlank(),
             disclosureAccepted = preferences[DISCLOSURE_ACCEPTED_KEY] ?: false,
+            xiaomiRecentsLockConfirmed = preferences[XIAOMI_RECENTS_LOCK_CONFIRMED_KEY] ?: false,
         )
   }
 }

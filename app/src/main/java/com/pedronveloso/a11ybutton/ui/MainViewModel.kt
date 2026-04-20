@@ -6,8 +6,10 @@ package com.pedronveloso.a11ybutton.ui
 
 import android.app.Application
 import android.content.ComponentName
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.pedronveloso.a11ybutton.SystemSettingsNavigator
 import com.pedronveloso.a11ybutton.data.AccessibilityStatusRepository
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
 import com.pedronveloso.a11ybutton.data.SettingsRepository
@@ -33,6 +35,12 @@ class MainViewModel(
   private val selectedAppState = MutableStateFlow<SelectedAppState>(SelectedAppState.None)
   private val availableApps = MutableStateFlow(AppPickerApps())
   private val serviceMessage = MutableStateFlow<String?>(null)
+  private val batteryOptimizationIgnored = MutableStateFlow(false)
+  private val backgroundProtectionBrand =
+      BackgroundProtectionBrand.fromDevice(
+          brand = Build.BRAND,
+          manufacturer = Build.MANUFACTURER,
+      )
   private val settingsState =
       settingsRepository.settings.stateIn(
           scope = viewModelScope,
@@ -46,11 +54,19 @@ class MainViewModel(
               settingsState,
               selectedAppState,
               serviceMessage,
-          ) { isServiceEnabled, settings, currentSelection, currentServiceMessage ->
+              batteryOptimizationIgnored,
+          ) { isServiceEnabled, settings, currentSelection, currentServiceMessage, isBatteryIgnored
+            ->
             deriveMainScreenState(
                 serviceEnabled = isServiceEnabled,
                 disclosureAccepted = settings.disclosureAccepted,
                 selectedAppState = currentSelection,
+                backgroundProtection =
+                    BackgroundProtectionState(
+                        requiredBrand = backgroundProtectionBrand,
+                        batteryOptimizationIgnored = isBatteryIgnored,
+                        recentsLockConfirmed = settings.xiaomiRecentsLockConfirmed,
+                    ),
                 serviceMessage = currentServiceMessage,
             )
           }
@@ -70,6 +86,7 @@ class MainViewModel(
   init {
     Timber.i("MainViewModel initialized")
     refreshServiceStatus()
+    refreshBackgroundProtectionStatus()
     refreshAvailableApps()
     viewModelScope.launch {
       settingsState.collect { settings ->
@@ -96,6 +113,12 @@ class MainViewModel(
   fun refreshSelection() {
     Timber.d("Refreshing selected app state")
     selectedAppState.value = installedAppsRepository.validateSelection(settingsState.value)
+  }
+
+  fun refreshBackgroundProtectionStatus() {
+    Timber.d("Refreshing battery optimization state")
+    batteryOptimizationIgnored.value =
+        SystemSettingsNavigator.isIgnoringBatteryOptimizations(getApplication())
   }
 
   fun refreshAvailableApps() {
@@ -133,5 +156,13 @@ class MainViewModel(
       )
       refreshSelection()
     }
+  }
+
+  fun confirmXiaomiRecentsLock() {
+    if (backgroundProtectionBrand != BackgroundProtectionBrand.Xiaomi) {
+      return
+    }
+    Timber.i("Marking Xiaomi recents lock step as confirmed")
+    viewModelScope.launch { settingsRepository.setXiaomiRecentsLockConfirmed(confirmed = true) }
   }
 }
