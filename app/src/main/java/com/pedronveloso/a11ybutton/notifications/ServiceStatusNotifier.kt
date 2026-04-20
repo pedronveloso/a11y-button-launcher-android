@@ -4,14 +4,18 @@
  */
 package com.pedronveloso.a11ybutton.notifications
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.pedronveloso.a11ybutton.R
 import com.pedronveloso.a11ybutton.receiver.OptOutReceiver
 import timber.log.Timber
@@ -90,8 +94,16 @@ object ServiceStatusNotifier {
             )
             .build()
 
-    NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
-    Timber.i("Service-disabled notification posted")
+    val canNotify =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+    if (canNotify) {
+      NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+      Timber.i("Service-disabled notification posted")
+    } else {
+      Timber.d("Skipping notification: POST_NOTIFICATIONS permission not granted")
+    }
   }
 
   fun cancelNotification(context: Context) {
