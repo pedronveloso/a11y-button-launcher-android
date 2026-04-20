@@ -74,7 +74,7 @@
     <string name="main_status_app_invalid">Needs reselection</string>
     <string name="main_message_title">Last trigger result</string>
     <string name="main_message_dismiss">Dismiss</string>
-    <string name="main_troubleshooting_button">I don\'t see the accessibility button: Check that the service is enabled. Some devices hide the button depending on navigation mode, but the Accessibility shortcut can still work.</string>
+    <string name="main_troubleshooting_button">I don\'t see the accessibility button: Check that the service is enabled. Some devices hide the button depending on navigation mode, but the Accessibility shortcut can still work. On Xiaomi devices, the button may not appear immediately after enabling the service in system settings. If that happens, lock the screen once and unlock it again so MIUI refreshes the shortcut button.</string>
     <string name="main_troubleshooting_nothing">Pressing the button does nothing: Return here and confirm the service is still enabled and one app is selected.</string>
     <string name="main_troubleshooting_missing_app">My selected app no longer opens: Choose the app again. Its launcher entry may have changed or the app may be disabled.</string>
     <string name="main_troubleshooting_background">On Xiaomi and some other devices, aggressive battery and background restrictions can stop the accessibility service from staying active after the app is backgrounded. Complete the Background Protection step in Setup if your device requires it.</string>
@@ -83,7 +83,9 @@
     <string name="picker_empty">No launchable apps match this search.</string>
     <string name="picker_back">Back</string>
     <string name="picker_icon_fallback">App</string>
-    <string name="picker_select_app">Select %1$s</string>
+    <string name="picker_selected_badge">Currently selected</string>
+    <string name="picker_state_selected">%1$s is currently selected</string>
+    <string name="picker_state_not_selected">Not currently selected</string>
     <string name="debug_open_menu">Open debug menu</string>
     <string name="debug_menu_title">Debug Menu</string>
     <string name="debug_logs_title">In-Memory Logs</string>

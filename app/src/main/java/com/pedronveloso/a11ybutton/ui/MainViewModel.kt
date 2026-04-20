@@ -87,7 +87,6 @@ class MainViewModel(
     Timber.i("MainViewModel initialized")
     refreshServiceStatus()
     refreshBackgroundProtectionStatus()
-    refreshAvailableApps()
     viewModelScope.launch {
       settingsState.collect { settings ->
         Timber.d(

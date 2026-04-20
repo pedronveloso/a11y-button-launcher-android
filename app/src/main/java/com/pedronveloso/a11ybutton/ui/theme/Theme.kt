@@ -6,12 +6,14 @@ package com.pedronveloso.a11ybutton.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
@@ -68,6 +70,16 @@ private val DarkColorScheme =
         onErrorContainer = Color(0xFFFFDAD6),
     )
 
+@Immutable
+data class A11YButtonStatusPalette(
+    val positiveContainer: Color,
+    val positiveContent: Color,
+)
+
+@Composable
+fun a11YButtonStatusPalette(): A11YButtonStatusPalette =
+    MaterialTheme.colorScheme.toStatusPalette()
+
 @Composable
 fun A11YButtonTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -83,9 +95,14 @@ fun A11YButtonTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
       }
-
   MaterialTheme(
       colorScheme = colorScheme,
       content = content,
   )
 }
+
+private fun ColorScheme.toStatusPalette(): A11YButtonStatusPalette =
+    A11YButtonStatusPalette(
+        positiveContainer = tertiaryContainer,
+        positiveContent = onTertiaryContainer,
+    )

@@ -79,7 +79,17 @@ class InstalledAppsRepository(
       return invalidSelection(settings, InvalidSelectionReason.DisabledApp)
     }
 
-    val matchingApp = getLaunchableApps().firstOrNull { it.componentName == componentName }
+    val matchingApp =
+        launcherApps
+            .getActivityList(packageName, Process.myUserHandle())
+            .firstOrNull { it.componentName == component }
+            ?.let { activityInfo ->
+              InstalledApp(
+                  packageName = activityInfo.applicationInfo.packageName,
+                  componentName = activityInfo.componentName.flattenToString(),
+                  label = activityInfo.label?.toString().orEmpty().ifBlank { activityInfo.name },
+              )
+            }
     return if (matchingApp != null) {
       Timber.d("Saved selection is valid for component=%s", componentName)
       SelectedAppState.Valid(matchingApp)

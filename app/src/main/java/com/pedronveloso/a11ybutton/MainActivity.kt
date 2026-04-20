@@ -13,7 +13,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -61,7 +61,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -86,6 +88,7 @@ import com.pedronveloso.a11ybutton.ui.MainScreenState
 import com.pedronveloso.a11ybutton.ui.MainViewModel
 import com.pedronveloso.a11ybutton.ui.SetupReadiness
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
+import com.pedronveloso.a11ybutton.ui.theme.a11YButtonStatusPalette
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -159,7 +162,6 @@ fun MainRoute(
         viewModel.refreshServiceStatus()
         viewModel.refreshSelection()
         viewModel.refreshBackgroundProtectionStatus()
-        viewModel.refreshAvailableApps()
       }
     }
     lifecycleOwner.lifecycle.addObserver(observer)
@@ -275,6 +277,8 @@ fun MainRoute(
       BackHandler { destination = MainDestination.Home }
       AppPickerScreen(
           apps = pickerApps,
+          selectedComponentName =
+              (screenState.selectedAppState as? SelectedAppState.Valid)?.app?.componentName,
           onBack = { destination = MainDestination.Home },
           onAppSelected = { app ->
             viewModel.selectApp(app)
@@ -880,6 +884,7 @@ private fun SelectedAppRow(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun AppPickerScreen(
     apps: AppPickerApps,
+    selectedComponentName: String?,
     onBack: () -> Unit,
     onAppSelected: (InstalledApp) -> Unit,
     showDebugAction: Boolean,
@@ -946,24 +951,49 @@ private fun AppPickerScreen(
               items = filteredApps,
               key = { it.componentName },
           ) { app ->
+            val isSelected = app.componentName == selectedComponentName
+            val stateDescription =
+                if (isSelected) {
+                  contextString(id = R.string.picker_state_selected, argument = app.label)
+                } else {
+                  stringResource(id = R.string.picker_state_not_selected)
+                }
             Card(
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            if (isSelected) {
+                              MaterialTheme.colorScheme.secondaryContainer
+                            } else {
+                              MaterialTheme.colorScheme.surface
+                            },
+                    ),
                 modifier =
-                    Modifier.fillMaxWidth().clickable(
-                        onClickLabel =
-                            contextString(
-                                id = R.string.picker_select_app,
-                                app.label,
-                            ),
-                    ) {
-                      onAppSelected(app)
-                    },
+                    Modifier.fillMaxWidth()
+                        .selectable(
+                            selected = isSelected,
+                            onClick = { onAppSelected(app) },
+                            role = androidx.compose.ui.semantics.Role.Button,
+                        )
+                        .semantics {
+                          selected = isSelected
+                          this.stateDescription = stateDescription
+                        },
             ) {
-              RowWithIcon(
-                  label = app.label,
-                  supportingText = app.packageName,
-                  componentName = app.componentName,
-                  modifier = Modifier.padding(16.dp),
-              )
+              Column(modifier = Modifier.padding(16.dp)) {
+                RowWithIcon(
+                    label = app.label,
+                    supportingText = app.packageName,
+                    componentName = app.componentName,
+                )
+                if (isSelected) {
+                  Text(
+                      text = stringResource(id = R.string.picker_selected_badge),
+                      style = MaterialTheme.typography.labelLarge,
+                      color = MaterialTheme.colorScheme.onSecondaryContainer,
+                  )
+                }
+              }
             }
           }
         }
@@ -1269,8 +1299,8 @@ private fun statusCardColors(tone: StatusTone): StatusColors =
     when (tone) {
       StatusTone.Positive ->
           StatusColors(
-              container = Color(0xFFDCEFD8),
-              content = Color(0xFF1E4D24),
+              container = a11YButtonStatusPalette().positiveContainer,
+              content = a11YButtonStatusPalette().positiveContent,
           )
 
       StatusTone.Attention ->
@@ -1441,6 +1471,7 @@ private fun AppPickerPreview() {
                         ),
                     ),
             ),
+        selectedComponentName = "com.example.reader/.HomeActivity",
         onBack = {},
         onAppSelected = {},
         showDebugAction = true,
