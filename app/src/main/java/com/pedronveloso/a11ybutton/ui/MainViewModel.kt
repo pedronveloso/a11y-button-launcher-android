@@ -4,11 +4,18 @@
  */
 package com.pedronveloso.a11ybutton.ui
 
+import android.Manifest
 import android.app.Application
 import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.pedronveloso.a11ybutton.SystemSettingsNavigator
 import com.pedronveloso.a11ybutton.data.AccessibilityStatusRepository
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
@@ -17,6 +24,8 @@ import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
+import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -68,6 +77,7 @@ class MainViewModel(
                         recentsLockConfirmed = settings.xiaomiRecentsLockConfirmed,
                     ),
                 serviceMessage = currentServiceMessage,
+                notificationsEnabled = settings.notificationsEnabled,
             )
           }
           .stateIn(
@@ -154,6 +164,32 @@ class MainViewModel(
           componentName = app.componentName,
       )
       refreshSelection()
+    }
+  }
+
+  fun refreshNotificationsEnabled() {
+    val app = getApplication<Application>()
+    val osGranted =
+        NotificationManagerCompat.from(app).areNotificationsEnabled() &&
+            (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) ==
+                    PackageManager.PERMISSION_GRANTED)
+    if (!osGranted && settingsState.value.notificationsEnabled) {
+      Timber.i("OS notification permission revoked; clearing notificationsEnabled flag")
+      viewModelScope.launch { settingsRepository.setNotificationsEnabled(false) }
+    }
+  }
+
+  fun enableNotifications() {
+    Timber.i("User opted in to background service monitoring")
+    viewModelScope.launch {
+      settingsRepository.setNotificationsEnabled(true)
+      WorkManager.getInstance(getApplication())
+          .enqueueUniquePeriodicWork(
+              ServiceCheckWorker.UNIQUE_WORK_NAME,
+              ExistingPeriodicWorkPolicy.KEEP,
+              PeriodicWorkRequestBuilder<ServiceCheckWorker>(6, TimeUnit.HOURS).build(),
+          )
     }
   }
 

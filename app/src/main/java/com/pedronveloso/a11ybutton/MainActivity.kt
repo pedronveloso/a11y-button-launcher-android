@@ -4,12 +4,16 @@
  */
 package com.pedronveloso.a11ybutton
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -80,6 +84,7 @@ import com.pedronveloso.a11ybutton.logging.LogEntry
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
 import com.pedronveloso.a11ybutton.service.ServiceDiagnostics
 import com.pedronveloso.a11ybutton.service.ServiceDiagnosticsStore
 import com.pedronveloso.a11ybutton.ui.AppPickerApps
@@ -162,6 +167,8 @@ fun MainRoute(
         viewModel.refreshServiceStatus()
         viewModel.refreshSelection()
         viewModel.refreshBackgroundProtectionStatus()
+        viewModel.refreshNotificationsEnabled()
+        ServiceStatusNotifier.cancelNotification(context)
       }
     }
     lifecycleOwner.lifecycle.addObserver(observer)
@@ -190,6 +197,7 @@ fun MainRoute(
               },
               onOpenFaq = { destination = MainDestination.Faq },
               onDismissServiceMessage = viewModel::clearServiceMessage,
+              onEnableNotifications = viewModel::enableNotifications,
               modifier = Modifier.padding(innerPadding),
           )
         }
@@ -220,6 +228,7 @@ fun MainRoute(
               SystemSettingsNavigator.openAccessibilitySettings(context)
             },
             onOpenFaq = { destination = MainDestination.Faq },
+            onEnableNotifications = viewModel::enableNotifications,
             modifier = Modifier.padding(innerPadding),
         )
       }
@@ -354,6 +363,7 @@ fun HomeScreen(
     onChooseApp: () -> Unit,
     onOpenFaq: () -> Unit,
     onDismissServiceMessage: () -> Unit,
+    onEnableNotifications: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   Column(
@@ -385,6 +395,13 @@ fun HomeScreen(
         selectedAppState = screenState.selectedAppState,
         onChooseApp = onChooseApp,
     )
+
+    if (screenState.isReady) {
+      NotificationPermissionCard(
+          notificationsEnabled = screenState.notificationsEnabled,
+          onEnable = onEnableNotifications,
+      )
+    }
 
     SectionCard(title = stringResource(id = R.string.home_support_title)) {
       OutlinedButton(
@@ -619,6 +636,7 @@ private fun SetupScreen(
     onOpenBackgroundProtection: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
     onOpenFaq: () -> Unit,
+    onEnableNotifications: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   Column(
@@ -715,6 +733,11 @@ private fun SetupScreen(
       }
     }
 
+    NotificationPermissionCard(
+        notificationsEnabled = screenState.notificationsEnabled,
+        onEnable = onEnableNotifications,
+    )
+
     SectionCard(title = stringResource(id = R.string.setup_primary_help)) {
       OutlinedButton(
           onClick = onOpenFaq,
@@ -722,6 +745,42 @@ private fun SetupScreen(
       ) {
         Text(text = stringResource(id = R.string.home_open_faq))
       }
+    }
+  }
+}
+
+@Composable
+private fun NotificationPermissionCard(
+    notificationsEnabled: Boolean,
+    onEnable: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  if (notificationsEnabled) return
+
+  val launcher =
+      rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) onEnable()
+      }
+
+  SectionCard(
+      title = stringResource(id = R.string.setup_notifications_title),
+      modifier = modifier,
+  ) {
+    Text(
+        text = stringResource(id = R.string.setup_notifications_body),
+        style = MaterialTheme.typography.bodyMedium,
+    )
+    Button(
+        onClick = {
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+          } else {
+            onEnable()
+          }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+      Text(text = stringResource(id = R.string.setup_notifications_action))
     }
   }
 }
@@ -1431,6 +1490,7 @@ private fun HomeScreenPreview() {
         onChooseApp = {},
         onOpenFaq = {},
         onDismissServiceMessage = {},
+        onEnableNotifications = {},
     )
   }
 }
@@ -1446,6 +1506,7 @@ private fun SetupScreenPreview() {
         onOpenBackgroundProtection = {},
         onOpenAccessibilitySettings = {},
         onOpenFaq = {},
+        onEnableNotifications = {},
     )
   }
 }

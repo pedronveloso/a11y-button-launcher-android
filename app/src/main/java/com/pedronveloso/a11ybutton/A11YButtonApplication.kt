@@ -6,6 +6,7 @@ package com.pedronveloso.a11ybutton
 
 import android.app.Application
 import com.pedronveloso.a11ybutton.logging.InMemoryLogTree
+import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
 import timber.log.Timber
 
 class A11YButtonApplication : Application() {
@@ -17,5 +18,7 @@ class A11YButtonApplication : Application() {
       Timber.plant(InMemoryLogTree())
       Timber.i("Timber initialized for debug build")
     }
+
+    ServiceStatusNotifier.createChannel(this)
   }
 }

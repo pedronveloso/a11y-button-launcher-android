@@ -19,6 +19,7 @@ data class MainScreenState(
     val backgroundProtection: BackgroundProtectionState = BackgroundProtectionState(),
     val serviceMessage: String? = null,
     val readiness: SetupReadiness = SetupReadiness.NotSetUp,
+    val notificationsEnabled: Boolean = false,
 ) {
   val isReady: Boolean
     get() = readiness == SetupReadiness.Ready
@@ -30,6 +31,7 @@ fun deriveMainScreenState(
     selectedAppState: SelectedAppState,
     backgroundProtection: BackgroundProtectionState = BackgroundProtectionState(),
     serviceMessage: String? = null,
+    notificationsEnabled: Boolean = false,
 ): MainScreenState {
   val selectedAppConfigured = selectedAppState is SelectedAppState.Valid
   val requirements = buildList {
@@ -55,5 +57,6 @@ fun deriveMainScreenState(
       backgroundProtection = backgroundProtection,
       serviceMessage = serviceMessage,
       readiness = readiness,
+      notificationsEnabled = notificationsEnabled,
   )
 }
