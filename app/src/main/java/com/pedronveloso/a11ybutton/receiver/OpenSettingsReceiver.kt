@@ -14,8 +14,7 @@ class OpenSettingsReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     ServiceStatusNotifier.cancelNotification(context)
     context.startActivity(
-        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
     )
   }
 }

@@ -126,4 +126,8 @@
     <string name="service_message_invalid_selection">Your saved app is no longer available. Choose another app.</string>
     <string name="service_message_launch_failed">The selected app could not be opened. Try choosing it again.</string>
     <string name="privacy_policy_label">Privacy Policy</string>
+    <string name="support_title">Support development</string>
+    <string name="support_body">If you find this app useful, you can support it here.</string>
+    <string name="support_github_sponsors">GitHub Sponsors</string>
+    <string name="support_kofi">Ko-fi</string>
 </resources>

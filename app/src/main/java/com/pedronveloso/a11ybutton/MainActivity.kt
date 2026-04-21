@@ -426,6 +426,30 @@ fun HomeScreen(
       }
     }
 
+    SectionCard(title = stringResource(id = R.string.support_title)) {
+      Text(
+          text = stringResource(id = R.string.support_body),
+          style = MaterialTheme.typography.bodyMedium,
+      )
+      Row(
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        OutlinedButton(
+            onClick = { uriHandler.openUri(GITHUB_SPONSORS_URL) },
+            modifier = Modifier.weight(1f),
+        ) {
+          Text(text = stringResource(id = R.string.support_github_sponsors))
+        }
+        OutlinedButton(
+            onClick = { uriHandler.openUri(KOFI_URL) },
+            modifier = Modifier.weight(1f),
+        ) {
+          Text(text = stringResource(id = R.string.support_kofi))
+        }
+      }
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth(),
@@ -435,7 +459,7 @@ fun HomeScreen(
           style = MaterialTheme.typography.bodySmall,
           color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
       )
-        Spacer(Modifier.height(4.dp))
+      Spacer(Modifier.height(4.dp))
       Text(
           text = stringResource(id = R.string.privacy_policy_label),
           style = MaterialTheme.typography.bodySmall,
@@ -1493,6 +1517,9 @@ private val LOG_TIMESTAMP_FORMATTER: DateTimeFormatter =
 
 private const val PRIVACY_POLICY_URL =
     "https://pedronveloso.github.io/a11y-button-launcher-android/privacy/"
+
+private const val GITHUB_SPONSORS_URL = "https://github.com/pedronveloso"
+private const val KOFI_URL = "https://ko-fi.com/pedronveloso"
 
 @Preview(showBackground = true)
 @Composable
