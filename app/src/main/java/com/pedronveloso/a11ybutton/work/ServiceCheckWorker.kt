@@ -26,6 +26,7 @@ class ServiceCheckWorker(
   companion object {
     const val UNIQUE_WORK_NAME = "service_check"
   }
+
   override suspend fun doWork(): Result {
     val settings = SettingsRepository.fromContext(applicationContext).settings.first()
 

@@ -9,8 +9,8 @@ import android.content.Context
 import android.content.Intent
 import androidx.work.WorkManager
 import com.pedronveloso.a11ybutton.data.SettingsRepository
-import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
 import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
+import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
