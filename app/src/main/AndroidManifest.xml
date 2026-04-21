@@ -39,6 +39,10 @@
             android:name=".receiver.OptOutReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".receiver.OpenSettingsReceiver"
+            android:exported="false" />
+
         <service
             android:name=".service.ShortcutLaunchAccessibilityService"
             android:description="@string/accessibility_service_description"

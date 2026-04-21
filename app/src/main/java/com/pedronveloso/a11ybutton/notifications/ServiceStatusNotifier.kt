@@ -17,6 +17,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.pedronveloso.a11ybutton.R
+import com.pedronveloso.a11ybutton.receiver.OpenSettingsReceiver
 import com.pedronveloso.a11ybutton.receiver.OptOutReceiver
 import timber.log.Timber
 
@@ -63,6 +64,14 @@ object ServiceStatusNotifier {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+    val openSettingsActionIntent =
+        PendingIntent.getBroadcast(
+            context,
+            1,
+            Intent(context, OpenSettingsReceiver::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
     val optOutIntent =
         PendingIntent.getBroadcast(
             context,
@@ -86,7 +95,7 @@ object ServiceStatusNotifier {
             .addAction(
                 0,
                 context.getString(R.string.notification_action_open_settings),
-                openSettingsIntent,
+                openSettingsActionIntent,
             )
             .addAction(
                 0,
