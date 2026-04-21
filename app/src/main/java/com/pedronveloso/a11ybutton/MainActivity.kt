@@ -167,6 +167,7 @@ fun MainRoute(
         viewModel.refreshServiceStatus()
         viewModel.refreshSelection()
         viewModel.refreshBackgroundProtectionStatus()
+        viewModel.refreshNotificationsEnabled()
         ServiceStatusNotifier.cancelNotification(context)
       }
     }

@@ -82,6 +82,7 @@ object ServiceStatusNotifier {
             )
             .setContentIntent(openSettingsIntent)
             .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
             .addAction(
                 0,
                 context.getString(R.string.notification_action_open_settings),

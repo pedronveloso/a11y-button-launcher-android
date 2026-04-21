@@ -4,9 +4,13 @@
  */
 package com.pedronveloso.a11ybutton.ui
 
+import android.Manifest
 import android.app.Application
 import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.content.ContextCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -163,13 +167,26 @@ class MainViewModel(
     }
   }
 
+  fun refreshNotificationsEnabled() {
+    val app = getApplication<Application>()
+    val osGranted =
+        NotificationManagerCompat.from(app).areNotificationsEnabled() &&
+            (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) ==
+                    PackageManager.PERMISSION_GRANTED)
+    if (!osGranted && settingsState.value.notificationsEnabled) {
+      Timber.i("OS notification permission revoked; clearing notificationsEnabled flag")
+      viewModelScope.launch { settingsRepository.setNotificationsEnabled(false) }
+    }
+  }
+
   fun enableNotifications() {
     Timber.i("User opted in to background service monitoring")
     viewModelScope.launch {
       settingsRepository.setNotificationsEnabled(true)
       WorkManager.getInstance(getApplication())
           .enqueueUniquePeriodicWork(
-              "service_check",
+              ServiceCheckWorker.UNIQUE_WORK_NAME,
               ExistingPeriodicWorkPolicy.KEEP,
               PeriodicWorkRequestBuilder<ServiceCheckWorker>(6, TimeUnit.HOURS).build(),
           )

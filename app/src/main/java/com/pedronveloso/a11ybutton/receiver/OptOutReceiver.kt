@@ -7,7 +7,9 @@ package com.pedronveloso.a11ybutton.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import androidx.work.WorkManager
 import com.pedronveloso.a11ybutton.data.SettingsRepository
+import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
 import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +23,7 @@ class OptOutReceiver : BroadcastReceiver() {
       try {
         SettingsRepository.fromContext(context).setNotificationsOptedOut(true)
         ServiceStatusNotifier.cancelNotification(context)
+        WorkManager.getInstance(context).cancelUniqueWork(ServiceCheckWorker.UNIQUE_WORK_NAME)
         Timber.i("User opted out of service-health notifications")
       } finally {
         pendingResult.finish()

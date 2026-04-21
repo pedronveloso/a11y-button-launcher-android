@@ -125,6 +125,32 @@ class MainScreenStateTest {
   }
 
   @Test
+  fun deriveMainScreenState_propagatesNotificationsEnabled_whenTrue() {
+    val state =
+        deriveMainScreenState(
+            serviceEnabled = false,
+            disclosureAccepted = false,
+            selectedAppState = SelectedAppState.None,
+            notificationsEnabled = true,
+        )
+
+    assertEquals(true, state.notificationsEnabled)
+  }
+
+  @Test
+  fun deriveMainScreenState_propagatesNotificationsEnabled_whenFalse() {
+    val state =
+        deriveMainScreenState(
+            serviceEnabled = false,
+            disclosureAccepted = false,
+            selectedAppState = SelectedAppState.None,
+            notificationsEnabled = false,
+        )
+
+    assertEquals(false, state.notificationsEnabled)
+  }
+
+  @Test
   fun deriveMainScreenState_isReady_whenHuaweiBackgroundProtectionIsComplete() {
     val state =
         deriveMainScreenState(

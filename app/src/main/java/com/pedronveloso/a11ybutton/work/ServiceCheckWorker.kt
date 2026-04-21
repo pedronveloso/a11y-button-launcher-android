@@ -23,8 +23,16 @@ class ServiceCheckWorker(
     context: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
+  companion object {
+    const val UNIQUE_WORK_NAME = "service_check"
+  }
   override suspend fun doWork(): Result {
     val settings = SettingsRepository.fromContext(applicationContext).settings.first()
+
+    if (!settings.notificationsEnabled) {
+      Timber.d("Service check skipped: notifications not enabled by user")
+      return Result.success()
+    }
 
     if (settings.notificationsOptedOut) {
       Timber.d("Service check skipped: user opted out of notifications")
