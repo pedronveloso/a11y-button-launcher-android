@@ -125,4 +125,5 @@
     <string name="service_message_choose_app_first">Choose an app before using the Accessibility shortcut.</string>
     <string name="service_message_invalid_selection">Your saved app is no longer available. Choose another app.</string>
     <string name="service_message_launch_failed">The selected app could not be opened. Try choosing it again.</string>
+    <string name="privacy_policy_label">Privacy Policy</string>
 </resources>

@@ -17,12 +17,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -61,6 +64,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -69,6 +73,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -366,6 +371,7 @@ fun HomeScreen(
     onEnableNotifications: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+  val uriHandler = LocalUriHandler.current
   Column(
       verticalArrangement = Arrangement.spacedBy(16.dp),
       modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -418,6 +424,25 @@ fun HomeScreen(
           Text(text = stringResource(id = R.string.home_open_setup))
         }
       }
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+      Text(
+          text = "v${BuildConfig.VERSION_NAME}",
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+      )
+        Spacer(Modifier.height(4.dp))
+      Text(
+          text = stringResource(id = R.string.privacy_policy_label),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.primary,
+          textDecoration = TextDecoration.Underline,
+          modifier = Modifier.clickable { uriHandler.openUri(PRIVACY_POLICY_URL) },
+      )
     }
   }
 }
@@ -1465,6 +1490,9 @@ private fun formatDebugTimestampOrUnknown(timestampMillis: Long?): String =
 
 private val LOG_TIMESTAMP_FORMATTER: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
+
+private const val PRIVACY_POLICY_URL =
+    "https://pedronveloso.github.io/a11y-button-launcher-android/privacy/"
 
 @Preview(showBackground = true)
 @Composable
