@@ -38,6 +38,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,6 +50,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -89,6 +93,7 @@ import com.pedronveloso.a11ybutton.logging.LogEntry
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
 import com.pedronveloso.a11ybutton.service.ServiceDiagnostics
 import com.pedronveloso.a11ybutton.service.ServiceDiagnosticsStore
@@ -114,6 +119,7 @@ private enum class MainDestination {
   Picker,
   DebugMenu,
   DebugLogs,
+  Preferences,
 }
 
 private enum class StatusTone {
@@ -129,7 +135,10 @@ class MainActivity : ComponentActivity() {
     Timber.i("MainActivity created")
     consumeIntent(intent)
     enableEdgeToEdge()
-    setContent { A11YButtonTheme { MainRoute(viewModel = mainViewModel) } }
+    setContent {
+      val themeMode by mainViewModel.themeMode.collectAsStateWithLifecycle()
+      A11YButtonTheme(themeMode = themeMode) { MainRoute(viewModel = mainViewModel) }
+    }
   }
 
   override fun onNewIntent(intent: Intent) {
@@ -188,6 +197,7 @@ fun MainRoute(
             topBar = {
               AppTopBar(
                   title = stringResource(id = R.string.app_name),
+                  onSettingsClick = { destination = MainDestination.Preferences },
                   showDebugAction = canOpenDebugTools,
                   onDebugClick = { destination = MainDestination.DebugMenu },
               )
@@ -324,6 +334,27 @@ fun MainRoute(
           modifier = modifier,
       )
     }
+
+    MainDestination.Preferences -> {
+      BackHandler { destination = MainDestination.Home }
+      val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+      Scaffold(
+          modifier = modifier.fillMaxSize(),
+          topBar = {
+            AppTopBar(
+                title = stringResource(id = R.string.settings_title),
+                showBack = true,
+                onBack = { destination = MainDestination.Home },
+            )
+          },
+      ) { innerPadding ->
+        PreferencesScreen(
+            themeMode = themeMode,
+            onThemeModeChanged = viewModel::setThemeMode,
+            modifier = Modifier.padding(innerPadding),
+        )
+      }
+    }
   }
 }
 
@@ -333,6 +364,7 @@ private fun AppTopBar(
     title: String,
     showBack: Boolean = false,
     onBack: (() -> Unit)? = null,
+    onSettingsClick: (() -> Unit)? = null,
     showDebugAction: Boolean = false,
     onDebugClick: (() -> Unit)? = null,
 ) {
@@ -349,6 +381,14 @@ private fun AppTopBar(
         }
       },
       actions = {
+        if (onSettingsClick != null) {
+          IconButton(onClick = onSettingsClick) {
+            Icon(
+                imageVector = Icons.Filled.Settings,
+                contentDescription = stringResource(id = R.string.settings_open),
+            )
+          }
+        }
         if (showDebugAction && onDebugClick != null) {
           IconButton(onClick = onDebugClick) {
             Icon(
@@ -955,6 +995,42 @@ private fun FaqScreen(
         question = stringResource(id = R.string.faq_question_background),
         answer = stringResource(id = R.string.main_troubleshooting_background),
     )
+  }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun PreferencesScreen(
+    themeMode: ThemeMode,
+    onThemeModeChanged: (ThemeMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  Column(
+      verticalArrangement = Arrangement.spacedBy(16.dp),
+      modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+  ) {
+    SectionCard(title = stringResource(id = R.string.settings_theme_title)) {
+      val options = ThemeMode.entries
+      SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        options.forEachIndexed { index, mode ->
+          SegmentedButton(
+              shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+              selected = themeMode == mode,
+              onClick = { onThemeModeChanged(mode) },
+              label = {
+                Text(
+                    text =
+                        when (mode) {
+                          ThemeMode.SYSTEM -> stringResource(id = R.string.settings_theme_system)
+                          ThemeMode.LIGHT -> stringResource(id = R.string.settings_theme_light)
+                          ThemeMode.DARK -> stringResource(id = R.string.settings_theme_dark)
+                        },
+                )
+              },
+          )
+        }
+      }
+    }
   }
 }
 

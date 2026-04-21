@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pedronveloso.a11ybutton.model.AppSettings
+import com.pedronveloso.a11ybutton.model.ThemeMode
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -61,6 +62,11 @@ class SettingsRepository(
     dataStore.edit { preferences -> preferences[XIAOMI_RECENTS_LOCK_CONFIRMED_KEY] = confirmed }
   }
 
+  suspend fun setThemeMode(mode: ThemeMode) {
+    Timber.i("Updating theme mode to %s", mode)
+    dataStore.edit { preferences -> preferences[THEME_MODE_KEY] = mode.name }
+  }
+
   suspend fun updateSelection(
       packageName: String?,
       componentName: String?,
@@ -84,6 +90,7 @@ class SettingsRepository(
         booleanPreferencesKey("xiaomi_recents_lock_confirmed")
     internal val NOTIFICATIONS_OPTED_OUT_KEY = booleanPreferencesKey("notifications_opted_out")
     internal val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
+    internal val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
 
     fun fromContext(context: Context): SettingsRepository = SettingsRepository(context.dataStore)
 
@@ -95,6 +102,8 @@ class SettingsRepository(
             xiaomiRecentsLockConfirmed = preferences[XIAOMI_RECENTS_LOCK_CONFIRMED_KEY] ?: false,
             notificationsOptedOut = preferences[NOTIFICATIONS_OPTED_OUT_KEY] ?: false,
             notificationsEnabled = preferences[NOTIFICATIONS_ENABLED_KEY] ?: false,
+            themeMode = ThemeMode.entries.find { it.name == preferences[THEME_MODE_KEY] }
+                ?: ThemeMode.SYSTEM,
         )
   }
 }

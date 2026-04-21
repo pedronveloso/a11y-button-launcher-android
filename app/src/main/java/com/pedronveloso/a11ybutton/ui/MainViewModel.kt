@@ -23,12 +23,15 @@ import com.pedronveloso.a11ybutton.data.SettingsRepository
 import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
 import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -56,6 +59,15 @@ class MainViewModel(
           started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
           initialValue = AppSettings(),
       )
+
+  val themeMode: StateFlow<ThemeMode> =
+      settingsState
+          .map { it.themeMode }
+          .stateIn(
+              scope = viewModelScope,
+              started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+              initialValue = ThemeMode.SYSTEM,
+          )
 
   val screenState =
       combine(
@@ -191,6 +203,10 @@ class MainViewModel(
               PeriodicWorkRequestBuilder<ServiceCheckWorker>(6, TimeUnit.HOURS).build(),
           )
     }
+  }
+
+  fun setThemeMode(mode: ThemeMode) {
+    viewModelScope.launch { settingsRepository.setThemeMode(mode) }
   }
 
   fun confirmXiaomiRecentsLock() {

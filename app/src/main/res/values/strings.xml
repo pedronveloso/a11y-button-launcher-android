@@ -130,4 +130,10 @@
     <string name="support_body">If you find this app useful, you can support it here.</string>
     <string name="support_github_sponsors">GitHub Sponsors</string>
     <string name="support_kofi">Ko-fi</string>
+    <string name="settings_open">Preferences</string>
+    <string name="settings_title">Preferences</string>
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
 </resources>

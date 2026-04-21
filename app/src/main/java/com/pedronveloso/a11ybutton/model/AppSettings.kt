@@ -11,4 +11,5 @@ data class AppSettings(
     val xiaomiRecentsLockConfirmed: Boolean = false,
     val notificationsOptedOut: Boolean = false,
     val notificationsEnabled: Boolean = false,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
 )
