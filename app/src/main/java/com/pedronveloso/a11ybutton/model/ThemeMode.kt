@@ -4,4 +4,8 @@
  */
 package com.pedronveloso.a11ybutton.model
 
-enum class ThemeMode { SYSTEM, LIGHT, DARK }
+enum class ThemeMode {
+  SYSTEM,
+  LIGHT,
+  DARK,
+}

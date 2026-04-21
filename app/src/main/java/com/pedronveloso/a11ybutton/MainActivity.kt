@@ -53,6 +53,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -79,7 +80,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -102,6 +102,7 @@ import com.pedronveloso.a11ybutton.ui.BackgroundProtectionBrand
 import com.pedronveloso.a11ybutton.ui.MainScreenState
 import com.pedronveloso.a11ybutton.ui.MainViewModel
 import com.pedronveloso.a11ybutton.ui.SetupReadiness
+import com.pedronveloso.a11ybutton.ui.preview.ThemePreviews
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
 import com.pedronveloso.a11ybutton.ui.theme.a11YButtonStatusPalette
 import java.time.Instant
@@ -1498,7 +1499,11 @@ private fun statusCardColors(tone: StatusTone): StatusColors =
 private fun statusBadgeColors(tone: StatusTone): StatusColors {
   val base = statusCardColors(tone)
   return StatusColors(
-      container = base.content.copy(alpha = 0.10f),
+      container =
+          when (tone) {
+            StatusTone.Positive -> base.container
+            StatusTone.Attention -> base.content.copy(alpha = 0.15f)
+          },
       content = base.content,
   )
 }
@@ -1597,7 +1602,7 @@ private const val PRIVACY_POLICY_URL =
 private const val GITHUB_SPONSORS_URL = "https://github.com/pedronveloso"
 private const val KOFI_URL = "https://ko-fi.com/pedronveloso"
 
-@Preview(showBackground = true)
+@ThemePreviews
 @Composable
 private fun HomeScreenPreview() {
   A11YButtonTheme {
@@ -1626,7 +1631,46 @@ private fun HomeScreenPreview() {
   }
 }
 
-@Preview(showBackground = true)
+@ThemePreviews
+@Composable
+private fun HomeScreenSetupNeededPreview() {
+  A11YButtonTheme {
+    HomeScreen(
+        screenState =
+            MainScreenState(
+                serviceEnabled = true,
+                disclosureAccepted = false,
+                selectedAppState = SelectedAppState.None,
+                readiness = SetupReadiness.PartiallySetUp,
+            ),
+        onOpenSetup = {},
+        onChooseApp = {},
+        onOpenFaq = {},
+        onDismissServiceMessage = {},
+        onEnableNotifications = {},
+    )
+  }
+}
+
+@ThemePreviews
+@Composable
+private fun StatusSummaryCardPreview() {
+  A11YButtonTheme {
+    Surface {
+      StatusSummaryCard(
+          screenState =
+              MainScreenState(
+                  serviceEnabled = true,
+                  selectedAppState = SelectedAppState.None,
+                  readiness = SetupReadiness.PartiallySetUp,
+              ),
+          onOpenSetup = {},
+      )
+    }
+  }
+}
+
+@ThemePreviews
 @Composable
 private fun SetupScreenPreview() {
   A11YButtonTheme {
@@ -1642,7 +1686,7 @@ private fun SetupScreenPreview() {
   }
 }
 
-@Preview(showBackground = true)
+@ThemePreviews
 @Composable
 private fun AppPickerPreview() {
   A11YButtonTheme {
@@ -1670,4 +1714,10 @@ private fun AppPickerPreview() {
         onDebugClick = {},
     )
   }
+}
+
+@ThemePreviews
+@Composable
+private fun PreferencesScreenPreview() {
+  A11YButtonTheme { PreferencesScreen(themeMode = ThemeMode.SYSTEM, onThemeModeChanged = {}) }
 }

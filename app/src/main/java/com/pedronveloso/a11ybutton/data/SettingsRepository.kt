@@ -102,8 +102,9 @@ class SettingsRepository(
             xiaomiRecentsLockConfirmed = preferences[XIAOMI_RECENTS_LOCK_CONFIRMED_KEY] ?: false,
             notificationsOptedOut = preferences[NOTIFICATIONS_OPTED_OUT_KEY] ?: false,
             notificationsEnabled = preferences[NOTIFICATIONS_ENABLED_KEY] ?: false,
-            themeMode = ThemeMode.entries.find { it.name == preferences[THEME_MODE_KEY] }
-                ?: ThemeMode.SYSTEM,
+            themeMode =
+                ThemeMode.entries.find { it.name == preferences[THEME_MODE_KEY] }
+                    ?: ThemeMode.SYSTEM,
         )
   }
 }
