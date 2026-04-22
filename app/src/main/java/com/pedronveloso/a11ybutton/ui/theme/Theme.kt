@@ -20,10 +20,10 @@ import com.pedronveloso.a11ybutton.model.ThemeMode
 
 private val LightColorScheme =
     lightColorScheme(
-        primary = Color(0xFF355F8C),
-        onPrimary = Color(0xFFF7F9FC),
-        primaryContainer = Color(0xFFD7E3F4),
-        onPrimaryContainer = Color(0xFF102A43),
+        primary = Color(0xFF1B5FAD),
+        onPrimary = Color(0xFFFFFFFF),
+        primaryContainer = Color(0xFFD2E4F7),
+        onPrimaryContainer = Color(0xFF06254A),
         secondary = Color(0xFF5B6778),
         onSecondary = Color(0xFFF6F7FA),
         secondaryContainer = Color(0xFFDDE3EB),
@@ -46,10 +46,10 @@ private val LightColorScheme =
     )
 private val DarkColorScheme =
     darkColorScheme(
-        primary = Color(0xFFA7C8F0),
-        onPrimary = Color(0xFF0C2F4D),
-        primaryContainer = Color(0xFF20486C),
-        onPrimaryContainer = Color(0xFFD7E3F4),
+        primary = Color(0xFF8DBDE8),
+        onPrimary = Color(0xFF062038),
+        primaryContainer = Color(0xFF174772),
+        onPrimaryContainer = Color(0xFFCCE2F5),
         secondary = Color(0xFFC1C7D0),
         onSecondary = Color(0xFF2D3138),
         secondaryContainer = Color(0xFF43474E),
@@ -58,9 +58,9 @@ private val DarkColorScheme =
         onTertiary = Color(0xFF31421F),
         tertiaryContainer = Color(0xFF475A33),
         onTertiaryContainer = Color(0xFFE0E8D2),
-        background = Color(0xFF121417),
+        background = Color(0xFF0F1318),
         onBackground = Color(0xFFE2E2E6),
-        surface = Color(0xFF121417),
+        surface = Color(0xFF0F1318),
         onSurface = Color(0xFFE2E2E6),
         surfaceVariant = Color(0xFF43474E),
         onSurfaceVariant = Color(0xFFC3C7CF),
@@ -75,10 +75,17 @@ private val DarkColorScheme =
 data class A11YButtonStatusPalette(
     val positiveContainer: Color,
     val positiveContent: Color,
+    val attentionContainer: Color,
+    val attentionContent: Color,
 )
 
 @Composable
-fun a11YButtonStatusPalette(): A11YButtonStatusPalette = MaterialTheme.colorScheme.toStatusPalette()
+fun a11YButtonStatusPalette(): A11YButtonStatusPalette {
+  val cs = MaterialTheme.colorScheme
+  // Use background brightness to detect dark mode regardless of ThemeMode override.
+  val isDark = cs.background.red < 0.5f
+  return cs.toStatusPalette(isDark)
+}
 
 @Composable
 fun A11YButtonTheme(
@@ -107,8 +114,10 @@ fun A11YButtonTheme(
   )
 }
 
-private fun ColorScheme.toStatusPalette(): A11YButtonStatusPalette =
+private fun ColorScheme.toStatusPalette(isDark: Boolean): A11YButtonStatusPalette =
     A11YButtonStatusPalette(
-        positiveContainer = tertiaryContainer,
-        positiveContent = onTertiaryContainer,
+        positiveContainer = if (isDark) Color(0xFF183326) else tertiaryContainer,
+        positiveContent = if (isDark) Color(0xFF7EC8A0) else onTertiaryContainer,
+        attentionContainer = if (isDark) Color(0xFF0F2035) else Color(0xFFDDE8F5),
+        attentionContent = if (isDark) Color(0xFF93BEE3) else Color(0xFF0D3461),
     )

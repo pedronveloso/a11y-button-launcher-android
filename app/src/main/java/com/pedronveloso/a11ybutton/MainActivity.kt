@@ -1480,20 +1480,22 @@ private fun StatusRow(
 }
 
 @Composable
-private fun statusCardColors(tone: StatusTone): StatusColors =
-    when (tone) {
-      StatusTone.Positive ->
-          StatusColors(
-              container = a11YButtonStatusPalette().positiveContainer,
-              content = a11YButtonStatusPalette().positiveContent,
-          )
+private fun statusCardColors(tone: StatusTone): StatusColors {
+  val palette = a11YButtonStatusPalette()
+  return when (tone) {
+    StatusTone.Positive ->
+        StatusColors(
+            container = palette.positiveContainer,
+            content = palette.positiveContent,
+        )
 
-      StatusTone.Attention ->
-          StatusColors(
-              container = MaterialTheme.colorScheme.errorContainer,
-              content = MaterialTheme.colorScheme.onErrorContainer,
-          )
-    }
+    StatusTone.Attention ->
+        StatusColors(
+            container = palette.attentionContainer,
+            content = palette.attentionContent,
+        )
+  }
+}
 
 @Composable
 private fun statusBadgeColors(tone: StatusTone): StatusColors {
