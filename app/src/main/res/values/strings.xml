@@ -136,4 +136,11 @@
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+    <string name="settings_about_title">About</string>
+    <string name="settings_made_by">Made by Pedro Veloso</string>
+    <string name="settings_contact_label">Email Contact</string>
+    <string name="settings_open_source_prefix">This app is open source and distributed under the</string>
+    <string name="settings_open_source_link">Apache 2.0 license</string>
+    <string name="settings_open_source_suffix">.</string>
+    <string name="settings_github_label">View on GitHub</string>
 </resources>

@@ -22,10 +22,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -78,9 +76,15 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -490,25 +494,6 @@ fun HomeScreen(
           Text(text = stringResource(id = R.string.support_kofi))
         }
       }
-    }
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-      Text(
-          text = "v${BuildConfig.VERSION_NAME}",
-          style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-      )
-      Spacer(Modifier.height(4.dp))
-      Text(
-          text = stringResource(id = R.string.privacy_policy_label),
-          style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.primary,
-          textDecoration = TextDecoration.Underline,
-          modifier = Modifier.clickable { uriHandler.openUri(PRIVACY_POLICY_URL) },
-      )
     }
   }
 }
@@ -1019,6 +1004,7 @@ private fun PreferencesScreen(
     onThemeModeChanged: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+  val uriHandler = LocalUriHandler.current
   Column(
       verticalArrangement = Arrangement.spacedBy(16.dp),
       modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -1043,6 +1029,61 @@ private fun PreferencesScreen(
               },
           )
         }
+      }
+    }
+    SectionCard(title = stringResource(id = R.string.settings_about_title)) {
+      Text(
+          text = stringResource(id = R.string.settings_made_by),
+          style = MaterialTheme.typography.bodyMedium,
+      )
+      Text(
+          text = stringResource(id = R.string.settings_contact_label),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.primary,
+          textDecoration = TextDecoration.Underline,
+          modifier = Modifier.clickable { uriHandler.openUri(CONTACT_EMAIL_URI) },
+      )
+      Text(
+          text = "v${BuildConfig.VERSION_NAME}",
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+          textAlign = TextAlign.Center,
+          modifier = Modifier.fillMaxWidth(),
+      )
+      Text(
+          text = stringResource(id = R.string.privacy_policy_label),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.primary,
+          textDecoration = TextDecoration.Underline,
+          textAlign = TextAlign.Center,
+          modifier = Modifier.fillMaxWidth().clickable { uriHandler.openUri(PRIVACY_POLICY_URL) },
+      )
+      val openSourceText = buildAnnotatedString {
+        append(stringResource(id = R.string.settings_open_source_prefix))
+        append(" ")
+        withLink(
+            LinkAnnotation.Url(
+                url = APACHE_LICENSE_URL,
+                styles =
+                    TextLinkStyles(
+                        style =
+                            SpanStyle(
+                                color = MaterialTheme.colorScheme.primary,
+                                textDecoration = TextDecoration.Underline,
+                            ),
+                    ),
+            )
+        ) {
+          append(stringResource(id = R.string.settings_open_source_link))
+        }
+        append(stringResource(id = R.string.settings_open_source_suffix))
+      }
+      Text(text = openSourceText, style = MaterialTheme.typography.bodyMedium)
+      OutlinedButton(
+          onClick = { uriHandler.openUri(GITHUB_REPO_URL) },
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(text = stringResource(id = R.string.settings_github_label))
       }
     }
   }
@@ -1616,6 +1657,9 @@ private const val PRIVACY_POLICY_URL =
 
 private const val GITHUB_SPONSORS_URL = "https://github.com/pedronveloso"
 private const val KOFI_URL = "https://ko-fi.com/pedronveloso"
+private const val GITHUB_REPO_URL = "https://github.com/pedronveloso/a11y-button-launcher-android"
+private const val APACHE_LICENSE_URL = "https://www.apache.org/licenses/LICENSE-2.0"
+private const val CONTACT_EMAIL_URI = "mailto:a11y-button-mail-alias.outreach139@passmail.com"
 
 @ThemePreviews
 @Composable
