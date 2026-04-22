@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">A11Y Button</string>
+    <string name="app_name">Accessibility Button Launcher</string>
     <string name="home_ready_title">Shortcut ready</string>
     <string name="home_ready_body">The accessibility shortcut is set up and ready to launch your selected app instantly.</string>
     <string name="home_attention_title">Setup needed</string>

@@ -1,6 +1,6 @@
-# A11Y Button
+# Accessibility Button Launcher
 
-`A11Y Button` is a minimal Android app that lets you assign one installed app to the system Accessibility button / shortcut. When the accessibility trigger fires, the app launches the selected target app. If no valid target exists, it opens the host app and explains what needs to be fixed.
+**Accessibility Button Launcher** is a minimal Android app that lets you assign one installed app to the system Accessibility button / shortcut. When the accessibility trigger fires, the app launches the selected target app. If no valid target exists, it opens the host app and explains what needs to be fixed.
 
 ## Requirements
 
