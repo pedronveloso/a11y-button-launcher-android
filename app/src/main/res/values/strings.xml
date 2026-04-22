@@ -20,8 +20,8 @@
     <string name="setup_primary_help">Need more help?</string>
     <string name="background_protection_title">Background Protection</string>
     <string name="background_protection_intro_title">Keep the service alive in the background</string>
-    <string name="background_protection_intro_body_xiaomi">Your Xiaomi device is more aggressive about killing background apps. Allow A11Y Button to ignore battery optimization, then lock the app from the recent apps switcher so the shortcut keeps working reliably.</string>
-    <string name="background_protection_intro_body_huawei">Your Huawei device may stop the service when the app is backgrounded. Allow A11Y Button to ignore battery optimization so the shortcut keeps working reliably.</string>
+    <string name="background_protection_intro_body_xiaomi">Your Xiaomi device is more aggressive about killing background apps. Allow the app to ignore battery optimization, then lock the app from the recent apps switcher so the shortcut keeps working reliably.</string>
+    <string name="background_protection_intro_body_huawei">Your Huawei device may stop the service when the app is backgrounded. Allow the app to ignore battery optimization so the shortcut keeps working reliably.</string>
     <string name="background_protection_not_required_title">No extra background setup needed</string>
     <string name="background_protection_not_required_body">This device does not require the extra background-protection setup step.</string>
     <string name="background_protection_not_required_status">Not required</string>
@@ -33,7 +33,7 @@
     <string name="background_protection_request_battery_exemption">Allow Unrestricted Battery Access</string>
     <string name="background_protection_open_battery_settings">Open Battery Settings</string>
     <string name="background_protection_xiaomi_title">Xiaomi recents lock</string>
-    <string name="background_protection_xiaomi_body">Open the recent apps switcher, find A11Y Button, and press the lock icon so MIUI keeps it alive in the background.</string>
+    <string name="background_protection_xiaomi_body">Open the recent apps switcher, find Accessibility Button Launcher, and press the lock icon so MIUI keeps it alive in the background. You\'ll it\'s done correctly if a lock icon displays next to the app name in the app switcher.</string>
     <string name="background_protection_xiaomi_lock_title">Recent apps lock</string>
     <string name="background_protection_xiaomi_lock_done">Lock step confirmed</string>
     <string name="background_protection_xiaomi_lock_pending">Still needs confirmation</string>
@@ -111,7 +111,7 @@
     <string name="service_settings_actions_title">Actions</string>
     <string name="service_settings_open_app">Open the App</string>
     <string name="service_settings_open_app_info">Open App Info</string>
-    <string name="accessibility_service_label">A11Y Button Shortcut Service</string>
+    <string name="accessibility_service_label">Accessibility Button Launcher Service</string>
     <string name="accessibility_service_description">Launches your selected app from the accessibility button or shortcut.</string>
     <string name="notification_channel_name">Service status</string>
     <string name="notification_channel_description">Alerts when the accessibility service needs to be re-enabled.</string>
@@ -120,7 +120,7 @@
     <string name="notification_action_open_settings">Open Settings</string>
     <string name="notification_action_opt_out">Don\'t remind me</string>
     <string name="setup_notifications_title">Stay notified</string>
-    <string name="setup_notifications_body">Allow notifications so A11Y Button can alert you if the accessibility service is ever disabled — for example, after an app update.</string>
+    <string name="setup_notifications_body">Allow notifications so the app can alert you if the accessibility service is ever disabled — for example, after an app update.</string>
     <string name="setup_notifications_action">Enable notifications</string>
     <string name="service_message_choose_app_first">Choose an app before using the Accessibility shortcut.</string>
     <string name="service_message_invalid_selection">Your saved app is no longer available. Choose another app.</string>

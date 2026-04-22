@@ -38,6 +38,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -532,15 +533,27 @@ private fun StatusSummaryCard(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.padding(20.dp),
     ) {
-      Text(
-          text =
-              if (screenState.isReady) {
-                stringResource(id = R.string.home_ready_title)
-              } else {
-                stringResource(id = R.string.home_attention_title)
-              },
-          style = MaterialTheme.typography.headlineSmall,
-      )
+      if (screenState.isReady) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Icon(
+              imageVector = Icons.Filled.CheckCircle,
+              contentDescription = null,
+              modifier = Modifier.size(28.dp),
+          )
+          Text(
+              text = stringResource(id = R.string.home_ready_title),
+              style = MaterialTheme.typography.headlineSmall,
+          )
+        }
+      } else {
+        Text(
+            text = stringResource(id = R.string.home_attention_title),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+      }
       Text(
           text =
               if (screenState.isReady) {
