@@ -27,6 +27,9 @@ import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
 import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -34,11 +37,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 class MainViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
+  private data class SelectionSettings(
+      val packageName: String?,
+      val componentName: String?,
+  )
+
   private val settingsRepository = SettingsRepository.fromContext(application)
   private val installedAppsRepository = InstalledAppsRepository(application)
   private val serviceComponent =
@@ -110,14 +119,29 @@ class MainViewModel(
     refreshServiceStatus()
     refreshBackgroundProtectionStatus()
     viewModelScope.launch {
-      settingsState.collect { settings ->
+      settingsState
+          .map { settings ->
+            SelectionSettings(
+                packageName = settings.selectedPackageName,
+                componentName = settings.selectedComponentName,
+            )
+          }
+          .distinctUntilChanged()
+          .collectLatest { settings ->
         Timber.d(
-            "Settings updated with package=%s component=%s disclosureAccepted=%s",
-            settings.selectedPackageName,
-            settings.selectedComponentName,
-            settings.disclosureAccepted,
+            "Selection updated with package=%s component=%s",
+            settings.packageName,
+            settings.componentName,
         )
-        selectedAppState.value = installedAppsRepository.validateSelection(settings)
+        selectedAppState.value =
+            withContext(Dispatchers.IO) {
+              installedAppsRepository.validateSelection(
+                  AppSettings(
+                      selectedPackageName = settings.packageName,
+                      selectedComponentName = settings.componentName,
+                  ),
+              )
+            }
       }
     }
   }
@@ -133,7 +157,12 @@ class MainViewModel(
 
   fun refreshSelection() {
     Timber.d("Refreshing selected app state")
-    selectedAppState.value = installedAppsRepository.validateSelection(settingsState.value)
+    viewModelScope.launch {
+      selectedAppState.value =
+          withContext(Dispatchers.IO) {
+            installedAppsRepository.validateSelection(settingsState.value)
+          }
+    }
   }
 
   fun refreshBackgroundProtectionStatus() {
@@ -144,13 +173,17 @@ class MainViewModel(
 
   fun refreshAvailableApps() {
     Timber.d("Refreshing available launchable apps")
-    availableApps.value =
-        AppPickerApps(
-            items =
-                installedAppsRepository.getLaunchableApps().filterNot {
-                  it.packageName == getApplication<Application>().packageName
-                },
-        )
+    viewModelScope.launch {
+      availableApps.value =
+          withContext(Dispatchers.IO) {
+            AppPickerApps(
+                items =
+                    installedAppsRepository.getLaunchableApps().filterNot {
+                      it.packageName == getApplication<Application>().packageName
+                    },
+            )
+          }
+    }
   }
 
   fun acceptDisclosure() {
