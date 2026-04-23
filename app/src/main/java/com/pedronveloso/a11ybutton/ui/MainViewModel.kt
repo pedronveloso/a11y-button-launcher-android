@@ -195,7 +195,7 @@ class MainViewModel(
   fun enableNotifications() {
     Timber.i("User opted in to background service monitoring")
     viewModelScope.launch {
-      settingsRepository.setNotificationsEnabled(true)
+      settingsRepository.enableNotifications()
       WorkManager.getInstance(getApplication())
           .enqueueUniquePeriodicWork(
               ServiceCheckWorker.UNIQUE_WORK_NAME,

@@ -52,6 +52,14 @@ class SettingsRepository(
     dataStore.edit { preferences -> preferences[NOTIFICATIONS_ENABLED_KEY] = enabled }
   }
 
+  suspend fun enableNotifications() {
+    Timber.i("Enabling notifications and clearing opt-out state")
+    dataStore.edit { preferences ->
+      preferences[NOTIFICATIONS_ENABLED_KEY] = true
+      preferences[NOTIFICATIONS_OPTED_OUT_KEY] = false
+    }
+  }
+
   suspend fun setNotificationsOptedOut(optedOut: Boolean) {
     Timber.i("Updating notifications opted out to %s", optedOut)
     dataStore.edit { preferences -> preferences[NOTIFICATIONS_OPTED_OUT_KEY] = optedOut }
