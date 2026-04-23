@@ -6,6 +6,7 @@ package com.pedronveloso.a11ybutton.ui
 
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
+import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -125,26 +126,26 @@ class MainScreenStateTest {
   }
 
   @Test
-  fun deriveMainScreenState_propagatesNotificationsEnabled_whenTrue() {
+  fun deriveMainScreenState_marksNotificationsEnabled_whenPreferenceIsEnabled() {
     val state =
         deriveMainScreenState(
             serviceEnabled = false,
             disclosureAccepted = false,
             selectedAppState = SelectedAppState.None,
-            notificationsEnabled = true,
+            notificationPreference = NotificationPreference.Enabled,
         )
 
     assertEquals(true, state.notificationsEnabled)
   }
 
   @Test
-  fun deriveMainScreenState_propagatesNotificationsEnabled_whenFalse() {
+  fun deriveMainScreenState_marksNotificationsDisabled_whenPreferenceIsOptedOut() {
     val state =
         deriveMainScreenState(
             serviceEnabled = false,
             disclosureAccepted = false,
             selectedAppState = SelectedAppState.None,
-            notificationsEnabled = false,
+            notificationPreference = NotificationPreference.OptedOut,
         )
 
     assertEquals(false, state.notificationsEnabled)

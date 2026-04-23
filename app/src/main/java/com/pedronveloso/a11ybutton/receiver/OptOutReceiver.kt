@@ -21,7 +21,7 @@ class OptOutReceiver : BroadcastReceiver() {
     val pendingResult = goAsync()
     CoroutineScope(Dispatchers.IO).launch {
       try {
-        SettingsRepository.fromContext(context).setNotificationsOptedOut(true)
+        SettingsRepository.fromContext(context).optOutNotifications()
         ServiceStatusNotifier.cancelNotification(context)
         WorkManager.getInstance(context).cancelUniqueWork(ServiceCheckWorker.UNIQUE_WORK_NAME)
         Timber.i("User opted out of service-health notifications")

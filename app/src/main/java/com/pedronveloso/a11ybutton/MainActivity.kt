@@ -97,6 +97,7 @@ import com.pedronveloso.a11ybutton.logging.LogEntries
 import com.pedronveloso.a11ybutton.logging.LogEntry
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
+import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
@@ -450,7 +451,7 @@ fun HomeScreen(
 
     if (screenState.isReady) {
       NotificationPermissionCard(
-          notificationsEnabled = screenState.notificationsEnabled,
+          notificationPreference = screenState.notificationPreference,
           onEnable = onEnableNotifications,
       )
     }
@@ -822,7 +823,7 @@ private fun SetupScreen(
     }
 
     NotificationPermissionCard(
-        notificationsEnabled = screenState.notificationsEnabled,
+        notificationPreference = screenState.notificationPreference,
         onEnable = onEnableNotifications,
     )
 
@@ -839,11 +840,11 @@ private fun SetupScreen(
 
 @Composable
 private fun NotificationPermissionCard(
-    notificationsEnabled: Boolean,
+    notificationPreference: NotificationPreference,
     onEnable: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  if (notificationsEnabled) return
+  if (notificationPreference == NotificationPreference.Enabled) return
 
   val launcher =
       rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->

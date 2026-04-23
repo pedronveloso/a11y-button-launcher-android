@@ -9,7 +9,6 @@ data class AppSettings(
     val selectedComponentName: String? = null,
     val disclosureAccepted: Boolean = false,
     val xiaomiRecentsLockConfirmed: Boolean = false,
-    val notificationsOptedOut: Boolean = false,
-    val notificationsEnabled: Boolean = false,
+    val notificationPreference: NotificationPreference = NotificationPreference.Disabled,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
 )

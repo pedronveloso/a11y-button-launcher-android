@@ -22,6 +22,7 @@ import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
 import com.pedronveloso.a11ybutton.data.SettingsRepository
 import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.InstalledApp
+import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
@@ -98,7 +99,7 @@ class MainViewModel(
                         recentsLockConfirmed = settings.xiaomiRecentsLockConfirmed,
                     ),
                 serviceMessage = currentServiceMessage,
-                notificationsEnabled = settings.notificationsEnabled,
+                notificationPreference = settings.notificationPreference,
             )
           }
           .stateIn(
@@ -219,9 +220,10 @@ class MainViewModel(
             (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                 ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) ==
                     PackageManager.PERMISSION_GRANTED)
-    if (!osGranted && settingsState.value.notificationsEnabled) {
-      Timber.i("OS notification permission revoked; clearing notificationsEnabled flag")
-      viewModelScope.launch { settingsRepository.setNotificationsEnabled(false) }
+    if (!osGranted &&
+        settingsState.value.notificationPreference == NotificationPreference.Enabled) {
+      Timber.i("OS notification permission revoked; disabling notifications preference")
+      viewModelScope.launch { settingsRepository.disableNotifications() }
     }
   }
 

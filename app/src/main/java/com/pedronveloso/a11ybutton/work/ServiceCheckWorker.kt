@@ -14,6 +14,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.pedronveloso.a11ybutton.data.AccessibilityStatusRepository
 import com.pedronveloso.a11ybutton.data.SettingsRepository
+import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
 import kotlinx.coroutines.flow.first
@@ -30,13 +31,11 @@ class ServiceCheckWorker(
   override suspend fun doWork(): Result {
     val settings = SettingsRepository.fromContext(applicationContext).settings.first()
 
-    if (!settings.notificationsEnabled) {
-      Timber.d("Service check skipped: notifications not enabled by user")
-      return Result.success()
-    }
-
-    if (settings.notificationsOptedOut) {
-      Timber.d("Service check skipped: user opted out of notifications")
+    if (settings.notificationPreference != NotificationPreference.Enabled) {
+      Timber.d(
+          "Service check skipped: notification preference is %s",
+          settings.notificationPreference,
+      )
       return Result.success()
     }
 

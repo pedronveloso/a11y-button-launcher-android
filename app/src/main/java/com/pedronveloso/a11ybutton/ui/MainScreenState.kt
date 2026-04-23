@@ -4,6 +4,7 @@
  */
 package com.pedronveloso.a11ybutton.ui
 
+import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 
 enum class SetupReadiness {
@@ -19,10 +20,13 @@ data class MainScreenState(
     val backgroundProtection: BackgroundProtectionState = BackgroundProtectionState(),
     val serviceMessage: String? = null,
     val readiness: SetupReadiness = SetupReadiness.NotSetUp,
-    val notificationsEnabled: Boolean = false,
+    val notificationPreference: NotificationPreference = NotificationPreference.Disabled,
 ) {
   val isReady: Boolean
     get() = readiness == SetupReadiness.Ready
+
+  val notificationsEnabled: Boolean
+    get() = notificationPreference == NotificationPreference.Enabled
 }
 
 fun deriveMainScreenState(
@@ -31,7 +35,7 @@ fun deriveMainScreenState(
     selectedAppState: SelectedAppState,
     backgroundProtection: BackgroundProtectionState = BackgroundProtectionState(),
     serviceMessage: String? = null,
-    notificationsEnabled: Boolean = false,
+    notificationPreference: NotificationPreference = NotificationPreference.Disabled,
 ): MainScreenState {
   val selectedAppConfigured = selectedAppState is SelectedAppState.Valid
   val requirements = buildList {
@@ -57,6 +61,6 @@ fun deriveMainScreenState(
       backgroundProtection = backgroundProtection,
       serviceMessage = serviceMessage,
       readiness = readiness,
-      notificationsEnabled = notificationsEnabled,
+      notificationPreference = notificationPreference,
   )
 }
