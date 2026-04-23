@@ -7,6 +7,7 @@ package com.pedronveloso.a11ybutton
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -50,6 +51,7 @@ class HomeScreenTest {
             onChooseApp = {},
             onOpenFaq = {},
             onDismissServiceMessage = {},
+            onEnableNotifications = {},
         )
       }
     }
@@ -81,11 +83,12 @@ class HomeScreenTest {
             onChooseApp = {},
             onOpenFaq = {},
             onDismissServiceMessage = { messageDismissed = true },
+            onEnableNotifications = {},
         )
       }
     }
 
-    composeTestRule.onNodeWithText("Open Setup").performClick()
+    composeTestRule.onAllNodesWithText("Open Setup")[0].performClick()
     composeTestRule.onNodeWithText("Dismiss").performClick()
 
     composeTestRule.runOnIdle {
@@ -115,6 +118,7 @@ class HomeScreenTest {
             onChooseApp = {},
             onOpenFaq = {},
             onDismissServiceMessage = {},
+            onEnableNotifications = {},
         )
       }
     }
@@ -144,6 +148,7 @@ class HomeScreenTest {
             onChooseApp = { chooseAppCount += 1 },
             onOpenFaq = {},
             onDismissServiceMessage = {},
+            onEnableNotifications = {},
         )
       }
     }
