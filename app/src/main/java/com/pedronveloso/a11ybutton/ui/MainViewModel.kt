@@ -29,12 +29,12 @@ import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
 import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -129,21 +129,21 @@ class MainViewModel(
           }
           .distinctUntilChanged()
           .collectLatest { settings ->
-        Timber.d(
-            "Selection updated with package=%s component=%s",
-            settings.packageName,
-            settings.componentName,
-        )
-        selectedAppState.value =
-            withContext(Dispatchers.IO) {
-              installedAppsRepository.validateSelection(
-                  AppSettings(
-                      selectedPackageName = settings.packageName,
-                      selectedComponentName = settings.componentName,
-                  ),
-              )
-            }
-      }
+            Timber.d(
+                "Selection updated with package=%s component=%s",
+                settings.packageName,
+                settings.componentName,
+            )
+            selectedAppState.value =
+                withContext(Dispatchers.IO) {
+                  installedAppsRepository.validateSelection(
+                      AppSettings(
+                          selectedPackageName = settings.packageName,
+                          selectedComponentName = settings.componentName,
+                      ),
+                  )
+                }
+          }
     }
   }
 
@@ -220,8 +220,9 @@ class MainViewModel(
             (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                 ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) ==
                     PackageManager.PERMISSION_GRANTED)
-    if (!osGranted &&
-        settingsState.value.notificationPreference == NotificationPreference.Enabled) {
+    if (
+        !osGranted && settingsState.value.notificationPreference == NotificationPreference.Enabled
+    ) {
       Timber.i("OS notification permission revoked; disabling notifications preference")
       viewModelScope.launch { settingsRepository.disableNotifications() }
     }

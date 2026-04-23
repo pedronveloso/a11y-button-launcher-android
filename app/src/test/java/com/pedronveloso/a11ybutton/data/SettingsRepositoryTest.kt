@@ -4,17 +4,17 @@
  */
 package com.pedronveloso.a11ybutton.data
 
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.MutablePreferences
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.NotificationPreference
 import java.io.File
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class SettingsRepositoryTest {
   @Test
