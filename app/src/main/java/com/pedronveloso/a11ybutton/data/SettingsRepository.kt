@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pedronveloso.a11ybutton.model.AppSettings
+import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.ThemeMode
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
@@ -47,14 +48,16 @@ class SettingsRepository(
     dataStore.edit { preferences -> preferences[DISCLOSURE_ACCEPTED_KEY] = accepted }
   }
 
-  suspend fun setNotificationsEnabled(enabled: Boolean) {
-    Timber.i("Updating notifications enabled to %s", enabled)
-    dataStore.edit { preferences -> preferences[NOTIFICATIONS_ENABLED_KEY] = enabled }
+  suspend fun enableNotifications() {
+    setNotificationPreference(NotificationPreference.Enabled)
   }
 
-  suspend fun setNotificationsOptedOut(optedOut: Boolean) {
-    Timber.i("Updating notifications opted out to %s", optedOut)
-    dataStore.edit { preferences -> preferences[NOTIFICATIONS_OPTED_OUT_KEY] = optedOut }
+  suspend fun disableNotifications() {
+    setNotificationPreference(NotificationPreference.Disabled)
+  }
+
+  suspend fun optOutNotifications() {
+    setNotificationPreference(NotificationPreference.OptedOut)
   }
 
   suspend fun setXiaomiRecentsLockConfirmed(confirmed: Boolean) {
@@ -88,6 +91,7 @@ class SettingsRepository(
     internal val DISCLOSURE_ACCEPTED_KEY = booleanPreferencesKey("disclosure_accepted")
     internal val XIAOMI_RECENTS_LOCK_CONFIRMED_KEY =
         booleanPreferencesKey("xiaomi_recents_lock_confirmed")
+    internal val NOTIFICATION_PREFERENCE_KEY = stringPreferencesKey("notification_preference")
     internal val NOTIFICATIONS_OPTED_OUT_KEY = booleanPreferencesKey("notifications_opted_out")
     internal val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
     internal val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
@@ -100,13 +104,37 @@ class SettingsRepository(
             selectedComponentName = preferences[SELECTED_COMPONENT_NAME_KEY].nullIfBlank(),
             disclosureAccepted = preferences[DISCLOSURE_ACCEPTED_KEY] ?: false,
             xiaomiRecentsLockConfirmed = preferences[XIAOMI_RECENTS_LOCK_CONFIRMED_KEY] ?: false,
-            notificationsOptedOut = preferences[NOTIFICATIONS_OPTED_OUT_KEY] ?: false,
-            notificationsEnabled = preferences[NOTIFICATIONS_ENABLED_KEY] ?: false,
+            notificationPreference = preferences.notificationPreference(),
             themeMode =
                 ThemeMode.entries.find { it.name == preferences[THEME_MODE_KEY] }
                     ?: ThemeMode.SYSTEM,
         )
   }
+
+  private suspend fun setNotificationPreference(preference: NotificationPreference) {
+    Timber.i("Updating notification preference to %s", preference)
+    dataStore.edit { preferences ->
+      preferences[NOTIFICATION_PREFERENCE_KEY] = preference.name
+      preferences[NOTIFICATIONS_ENABLED_KEY] = preference == NotificationPreference.Enabled
+      preferences[NOTIFICATIONS_OPTED_OUT_KEY] = preference == NotificationPreference.OptedOut
+    }
+  }
 }
 
 private fun String?.nullIfBlank(): String? = if (isNullOrBlank()) null else this
+
+private fun Preferences.notificationPreference(): NotificationPreference {
+  val storedPreference =
+      this[SettingsRepository.NOTIFICATION_PREFERENCE_KEY]?.let { savedValue ->
+        NotificationPreference.entries.find { it.name == savedValue }
+      }
+  if (storedPreference != null) {
+    return storedPreference
+  }
+
+  return when {
+    this[SettingsRepository.NOTIFICATIONS_OPTED_OUT_KEY] == true -> NotificationPreference.OptedOut
+    this[SettingsRepository.NOTIFICATIONS_ENABLED_KEY] == true -> NotificationPreference.Enabled
+    else -> NotificationPreference.Disabled
+  }
+}

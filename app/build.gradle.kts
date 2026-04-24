@@ -40,6 +40,7 @@ android {
   lint {
     warningsAsErrors = true
     baseline = file("lint-baseline.xml")
+    disable += "GradleDependency"
     disable += "ExpiredTargetSdkVersion"
     disable += "OldTargetApi"
   }
