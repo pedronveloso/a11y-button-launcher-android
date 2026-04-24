@@ -133,8 +133,8 @@ private fun Preferences.notificationPreference(): NotificationPreference {
   }
 
   return when {
-    this[SettingsRepository.NOTIFICATIONS_ENABLED_KEY] == true -> NotificationPreference.Enabled
     this[SettingsRepository.NOTIFICATIONS_OPTED_OUT_KEY] == true -> NotificationPreference.OptedOut
+    this[SettingsRepository.NOTIFICATIONS_ENABLED_KEY] == true -> NotificationPreference.Enabled
     else -> NotificationPreference.Disabled
   }
 }

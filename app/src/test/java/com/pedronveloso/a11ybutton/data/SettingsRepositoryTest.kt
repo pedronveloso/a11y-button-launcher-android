@@ -89,6 +89,19 @@ class SettingsRepositoryTest {
     assertEquals(NotificationPreference.OptedOut, settings.notificationPreference)
   }
 
+  @Test
+  fun preferencesToAppSettings_prefersOptOutWhenLegacyFlagsAreBothTrue() {
+    val preferences: MutablePreferences =
+        mutablePreferencesOf(
+            SettingsRepository.NOTIFICATIONS_ENABLED_KEY to true,
+            SettingsRepository.NOTIFICATIONS_OPTED_OUT_KEY to true,
+        )
+
+    val settings = SettingsRepository.preferencesToAppSettings(preferences)
+
+    assertEquals(NotificationPreference.OptedOut, settings.notificationPreference)
+  }
+
   private fun createRepository(): SettingsRepository {
     val file = File.createTempFile("settings-repository-test", ".preferences_pb")
     file.deleteOnExit()

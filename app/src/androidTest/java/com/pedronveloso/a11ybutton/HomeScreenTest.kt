@@ -7,7 +7,7 @@ package com.pedronveloso.a11ybutton
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -88,7 +88,7 @@ class HomeScreenTest {
       }
     }
 
-    composeTestRule.onAllNodesWithText("Open Setup")[0].performClick()
+    composeTestRule.onNodeWithTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG).performClick()
     composeTestRule.onNodeWithText("Dismiss").performClick()
 
     composeTestRule.runOnIdle {

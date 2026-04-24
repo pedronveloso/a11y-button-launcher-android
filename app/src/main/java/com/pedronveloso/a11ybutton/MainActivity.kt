@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -133,6 +134,8 @@ private enum class StatusTone {
   Positive,
   Attention,
 }
+
+internal const val HOME_STATUS_OPEN_SETUP_BUTTON_TAG = "home_status_open_setup_button"
 
 class MainActivity : ComponentActivity() {
   private val mainViewModel: MainViewModel by viewModels()
@@ -466,7 +469,7 @@ fun HomeScreen(
       if (!screenState.isReady) {
         Button(
             onClick = onOpenSetup,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG),
         ) {
           Text(text = stringResource(id = R.string.home_open_setup))
         }
@@ -486,7 +489,11 @@ fun HomeScreen(
             onClick = { uriHandler.openUri(GITHUB_SPONSORS_URL) },
             modifier = Modifier.weight(1f),
         ) {
-          Text(text = stringResource(id = R.string.support_github_sponsors))
+          Text(
+              text = stringResource(id = R.string.support_github_sponsors),
+              textAlign = TextAlign.Center,
+              modifier = Modifier.fillMaxWidth(),
+          )
         }
         OutlinedButton(
             onClick = { uriHandler.openUri(KOFI_URL) },
