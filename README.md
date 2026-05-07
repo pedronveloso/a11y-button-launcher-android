@@ -1,5 +1,7 @@
 # Accessibility Button Launcher
 
+[![Android CI](https://github.com/pedronveloso/a11y-button-launcher-android/actions/workflows/ci.yml/badge.svg)](https://github.com/pedronveloso/a11y-button-launcher-android/actions/workflows/ci.yml) [![Latest release](https://img.shields.io/github/v/release/pedronveloso/a11y-button-launcher-android?label=release)](https://github.com/pedronveloso/a11y-button-launcher-android/releases/latest)
+
 **Accessibility Button Launcher** is a minimal Android app that lets you assign one installed app to the system Accessibility button / shortcut. When the accessibility trigger fires, the app launches the selected target app. If no valid target exists, it opens the host app and explains what needs to be fixed.
 
 ## Requirements
