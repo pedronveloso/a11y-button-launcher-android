@@ -1,0 +1,20 @@
+Accessibility Button Launcher lets you assign one installed app to the Android accessibility button or accessibility shortcut that is already built into Android.
+
+Because it uses the operating system's built-in accessibility trigger, the integration stays simple and low-friction. You use the same system control Android already provides instead of a custom overlay, floating tool, or extra launcher layer.
+
+When the accessibility trigger is used, the app launches only the app you selected. This keeps the experience direct and lightweight while working with the platform behavior that Android already supports. If the saved app is no longer available, the app explains what needs to be fixed instead of failing silently.
+
+What it does:
+- Assigns one launchable app to the accessibility button or shortcut
+- Leverages Android's built-in accessibility button for a native-feeling integration
+- Guides you through the initial setup
+- Helps recover when the accessibility service is disabled after an app update
+- Includes background-protection guidance for devices that aggressively stop accessibility services
+
+Privacy and permissions:
+- No analytics, advertising, or crash reporting
+- No cloud sync and no network data collection
+- Settings are stored only on your device
+- The accessibility service is used only to respond to the accessibility button or shortcut
+
+The app is open source and built for people who want a simple, focused way to launch one app from the system accessibility trigger.

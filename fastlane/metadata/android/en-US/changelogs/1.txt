@@ -1,0 +1,3 @@
+Initial public release of Accessibility Button Launcher.
+
+Assign one installed app to the Android accessibility button or shortcut, launch it with a single trigger, and get setup and recovery guidance when the service needs attention.
