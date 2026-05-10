@@ -34,6 +34,13 @@ android {
     targetCompatibility = JavaVersion.VERSION_17
   }
   kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }
+
+  // Exclude the dependencies info files from the final APK and Bundle, for F-Droid.
+  dependenciesInfo {
+    includeInApk = false
+    includeInBundle = false
+  }
+
   buildFeatures {
     compose = true
     buildConfig = true
