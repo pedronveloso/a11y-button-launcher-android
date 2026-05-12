@@ -11,8 +11,8 @@ android {
     applicationId = "com.pedronveloso.a11ybutton"
     minSdk = 30
     targetSdk = 37
-    versionCode = 2
-    versionName = "Beta 2"
+    versionCode = 3
+    versionName = "Beta 3"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
