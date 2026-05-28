@@ -4,6 +4,10 @@
 
 **Accessibility Button Launcher** is a minimal Android app that lets you assign one installed app to the system Accessibility button / shortcut. When the accessibility trigger fires, the app launches the selected target app. If no valid target exists, it opens the host app and explains what needs to be fixed.
 
+## Install
+
+Install the app from [F-Droid](https://f-droid.org/en/packages/com.pedronveloso.a11ybutton/), or download the APK from this repository's [GitHub Releases](https://github.com/pedronveloso/a11y-button-launcher-android/releases/latest).
+
 ## Requirements
 
 - Android 11+ (API 30+)
