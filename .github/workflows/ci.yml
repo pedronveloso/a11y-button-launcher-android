@@ -67,7 +67,7 @@ jobs:
 
       - name: Comment lint results on PR
         if: always() && github.event_name == 'pull_request'
-        uses: yutailang0119/action-android-lint@17fff6880e4c64c94073ac8c4fb9f2611e9fa5a0 # v3
+        uses: yutailang0119/action-android-lint@8345a8dece583030445b0b5f9611209431d601c4 # v5.0.0
         with:
           report-path: app/build/reports/lint-results-debug.xml
         continue-on-error: true
