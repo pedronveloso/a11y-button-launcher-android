@@ -24,7 +24,7 @@ Add fast logic tests to `app/src/test/java/...` and Android-dependent tests to `
 Current history uses short, imperative commit subjects such as `Initial project setup with CI tooling`. Keep commits focused and under about 72 characters when practical. Pull requests should include a concise summary, linked issue if applicable, test notes, and screenshots or recordings for UI changes. Call out any accessibility impact explicitly.
 
 ## Configuration Tips
-Use JDK 17 to match CI. Treat `local.properties` as machine-specific and avoid committing secrets or environment-specific changes.
+Use JDK 21 to match CI. Treat `local.properties` as machine-specific and avoid committing secrets or environment-specific changes.
 # CLAUDE.md
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
