@@ -149,11 +149,15 @@ class MainViewModel(
 
   fun refreshServiceStatus() {
     Timber.d("Refreshing accessibility service status")
-    serviceEnabled.value =
+    val nowEnabled =
         AccessibilityStatusRepository.isServiceEnabled(
             context = getApplication(),
             serviceComponent = serviceComponent,
         )
+    if (nowEnabled && !serviceEnabled.value) {
+      serviceMessage.value = null
+    }
+    serviceEnabled.value = nowEnabled
   }
 
   fun refreshSelection() {
@@ -174,6 +178,7 @@ class MainViewModel(
 
   fun refreshAvailableApps() {
     Timber.d("Refreshing available launchable apps")
+    availableApps.value = AppPickerApps(isLoading = true)
     viewModelScope.launch {
       availableApps.value =
           withContext(Dispatchers.IO) {
@@ -209,7 +214,6 @@ class MainViewModel(
           packageName = app.packageName,
           componentName = app.componentName,
       )
-      refreshSelection()
     }
   }
 

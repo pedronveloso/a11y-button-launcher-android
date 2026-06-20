@@ -27,6 +27,8 @@ import timber.log.Timber
 class ShortcutLaunchAccessibilityService : AccessibilityService() {
   private val callbackHandler = Handler(Looper.getMainLooper())
   private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+  private val settingsRepository by lazy { SettingsRepository.fromContext(this) }
+  private val installedAppsRepository by lazy { InstalledAppsRepository(this) }
   private val accessibilityButtonCallback =
       object : AccessibilityButtonController.AccessibilityButtonCallback() {
         override fun onClicked(controller: AccessibilityButtonController) {
@@ -91,50 +93,52 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
     ServiceDiagnosticsStore.recordTriggerHandled()
     Timber.i("Accessibility shortcut triggered")
     serviceScope.launch {
-      val settingsRepository =
-          SettingsRepository.fromContext(this@ShortcutLaunchAccessibilityService)
-      val installedAppsRepository = InstalledAppsRepository(this@ShortcutLaunchAccessibilityService)
-      val settings = settingsRepository.settings.first()
-      Timber.d(
-          "Loaded settings for trigger with package=%s component=%s disclosureAccepted=%s",
-          settings.selectedPackageName,
-          settings.selectedComponentName,
-          settings.disclosureAccepted,
-      )
-      val selectionState = installedAppsRepository.validateSelection(settings)
+      try {
+        val settings = settingsRepository.settings.first()
+        Timber.d(
+            "Loaded settings for trigger with package=%s component=%s disclosureAccepted=%s",
+            settings.selectedPackageName,
+            settings.selectedComponentName,
+            settings.disclosureAccepted,
+        )
+        val selectionState = installedAppsRepository.validateSelection(settings)
 
-      when (selectionState) {
-        is SelectedAppState.Valid -> {
-          Timber.i(
-              "Attempting to launch selected app label=%s package=%s component=%s",
-              selectionState.app.label,
-              selectionState.app.packageName,
-              selectionState.app.componentName,
-          )
-          launchTargetApp(selectionState.app.componentName)
-        }
+        when (selectionState) {
+          is SelectedAppState.Valid -> {
+            Timber.i(
+                "Attempting to launch selected app label=%s package=%s component=%s",
+                selectionState.app.label,
+                selectionState.app.packageName,
+                selectionState.app.componentName,
+            )
+            launchTargetApp(selectionState.app.componentName)
+          }
 
-        is SelectedAppState.Invalid -> {
-          Timber.w(
-              "Saved selection invalid; clearing package=%s component=%s",
-              selectionState.packageName,
-              selectionState.componentName,
-          )
-          settingsRepository.updateSelection(
-              packageName = null,
-              componentName = null,
-          )
-          openHostApp(
-              message = getString(R.string.service_message_invalid_selection),
-          )
-        }
+          is SelectedAppState.Invalid -> {
+            Timber.w(
+                "Saved selection invalid; clearing package=%s component=%s",
+                selectionState.packageName,
+                selectionState.componentName,
+            )
+            settingsRepository.updateSelection(
+                packageName = null,
+                componentName = null,
+            )
+            openHostApp(
+                message = getString(R.string.service_message_invalid_selection),
+            )
+          }
 
-        SelectedAppState.None -> {
-          Timber.i("No app has been selected yet; opening host app")
-          openHostApp(
-              message = getString(R.string.service_message_choose_app_first),
-          )
+          SelectedAppState.None -> {
+            Timber.i("No app has been selected yet; opening host app")
+            openHostApp(
+                message = getString(R.string.service_message_choose_app_first),
+            )
+          }
         }
+      } catch (e: Exception) {
+        Timber.e(e, "Failed to read settings during accessibility trigger")
+        openHostApp(message = getString(R.string.service_message_launch_failed))
       }
     }
   }

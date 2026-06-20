@@ -12,10 +12,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.pedronveloso.a11ybutton.MainActivity
 import com.pedronveloso.a11ybutton.R
 import com.pedronveloso.a11ybutton.receiver.OpenSettingsReceiver
 import com.pedronveloso.a11ybutton.receiver.OptOutReceiver
@@ -43,6 +43,10 @@ object ServiceStatusNotifier {
   const val CHANNEL_ID = "service_status"
   const val NOTIFICATION_ID = 1001
 
+  private const val RC_TAP_NOTIFICATION = 10
+  private const val RC_OPEN_SETTINGS = 11
+  private const val RC_OPT_OUT = 12
+
   fun createChannel(context: Context) {
     val name = context.getString(R.string.notification_channel_name)
     val description = context.getString(R.string.notification_channel_description)
@@ -56,18 +60,19 @@ object ServiceStatusNotifier {
   }
 
   fun showServiceDisabledNotification(context: Context) {
-    val openSettingsIntent =
+    val tapNotificationIntent =
         PendingIntent.getActivity(
             context,
-            0,
-            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+            RC_TAP_NOTIFICATION,
+            Intent(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
     val openSettingsActionIntent =
         PendingIntent.getBroadcast(
             context,
-            1,
+            RC_OPEN_SETTINGS,
             Intent(context, OpenSettingsReceiver::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -75,7 +80,7 @@ object ServiceStatusNotifier {
     val optOutIntent =
         PendingIntent.getBroadcast(
             context,
-            0,
+            RC_OPT_OUT,
             Intent(context, OptOutReceiver::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -89,7 +94,7 @@ object ServiceStatusNotifier {
                 NotificationCompat.BigTextStyle()
                     .bigText(context.getString(R.string.notification_service_disabled_body)),
             )
-            .setContentIntent(openSettingsIntent)
+            .setContentIntent(tapNotificationIntent)
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .addAction(
