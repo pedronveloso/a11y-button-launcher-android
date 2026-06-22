@@ -16,6 +16,7 @@ import com.pedronveloso.a11ybutton.R
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
 import com.pedronveloso.a11ybutton.data.SettingsRepository
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -136,8 +137,10 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
             )
           }
         }
-      } catch (e: Exception) {
-        Timber.e(e, "Failed to read settings during accessibility trigger")
+      } catch (exception: CancellationException) {
+        throw exception
+      } catch (exception: Exception) {
+        Timber.e(exception, "Failed to read settings during accessibility trigger")
         openHostApp(message = getString(R.string.service_message_launch_failed))
       }
     }
