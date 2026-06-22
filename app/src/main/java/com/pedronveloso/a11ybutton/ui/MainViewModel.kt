@@ -28,6 +28,7 @@ import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
 import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -149,11 +150,15 @@ class MainViewModel(
 
   fun refreshServiceStatus() {
     Timber.d("Refreshing accessibility service status")
-    serviceEnabled.value =
+    val nowEnabled =
         AccessibilityStatusRepository.isServiceEnabled(
             context = getApplication(),
             serviceComponent = serviceComponent,
         )
+    if (nowEnabled && !serviceEnabled.value) {
+      serviceMessage.value = null
+    }
+    serviceEnabled.value = nowEnabled
   }
 
   fun refreshSelection() {
@@ -174,16 +179,24 @@ class MainViewModel(
 
   fun refreshAvailableApps() {
     Timber.d("Refreshing available launchable apps")
+    availableApps.value = AppPickerApps(isLoading = true)
     viewModelScope.launch {
-      availableApps.value =
-          withContext(Dispatchers.IO) {
-            AppPickerApps(
-                items =
-                    installedAppsRepository.getLaunchableApps().filterNot {
-                      it.packageName == getApplication<Application>().packageName
-                    },
-            )
-          }
+      try {
+        availableApps.value =
+            withContext(Dispatchers.IO) {
+              AppPickerApps(
+                  items =
+                      installedAppsRepository.getLaunchableApps().filterNot {
+                        it.packageName == getApplication<Application>().packageName
+                      },
+              )
+            }
+      } catch (exception: CancellationException) {
+        throw exception
+      } catch (exception: Exception) {
+        Timber.e(exception, "Failed to refresh available launchable apps")
+        availableApps.value = AppPickerApps()
+      }
     }
   }
 
@@ -209,7 +222,6 @@ class MainViewModel(
           packageName = app.packageName,
           componentName = app.componentName,
       )
-      refreshSelection()
     }
   }
 

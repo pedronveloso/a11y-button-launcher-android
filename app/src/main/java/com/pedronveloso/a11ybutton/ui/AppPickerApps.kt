@@ -10,4 +10,5 @@ import com.pedronveloso.a11ybutton.model.InstalledApp
 @Immutable
 data class AppPickerApps(
     val items: List<InstalledApp> = emptyList(),
+    val isLoading: Boolean = false,
 )
