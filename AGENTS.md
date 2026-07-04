@@ -1,5 +1,7 @@
 # Repository Guidelines
 
+For product context — what the app does, who it's for, scope, and product principles — see [PRODUCT.md](PRODUCT.md).
+
 ## Project Structure & Module Organization
 This repository is a single-module Android app built with Kotlin, Gradle Kotlin DSL, and Jetpack Compose. App code lives under `app/src/main/java/com/pedronveloso/a11ybutton`, with shared theme code in `app/src/main/java/com/pedronveloso/a11ybutton/ui/theme`. Resources are in `app/src/main/res`. Local JVM tests live in `app/src/test`, and device/emulator instrumentation tests live in `app/src/androidTest`. Build logic is defined in `build.gradle.kts`, `app/build.gradle.kts`, and the version catalog at `gradle/libs.versions.toml`.
 
