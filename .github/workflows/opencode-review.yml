@@ -27,7 +27,7 @@ jobs:
           persist-credentials: true
 
       - name: Run OpenCode review
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@77fc88c8ade8e5a620ebbe1197f3a572d29ae91a # github-v1.2.19
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -92,4 +92,4 @@ jobs:
               versionCode and versionName in app/build.gradle.kts, and the F-Droid
               changelog in fastlane/metadata/android/en-US/changelogs
             - Suggest concrete, actionable improvements with file references
-            Post the resulting review on the pull request.
+            Return the resulting review as your final response.
