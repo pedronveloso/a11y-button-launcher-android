@@ -46,7 +46,10 @@ object LaunchIntentFactory {
     val intent =
         try {
           Intent.parseUri(intentUri, Intent.URI_INTENT_SCHEME)
-        } catch (exception: java.net.URISyntaxException) {
+        } catch (exception: Exception) {
+          // The URI comes back from backup/restore, and parseUri also throws unchecked exceptions
+          // (for example NumberFormatException on a bad launchFlags value), not only
+          // URISyntaxException.
           Timber.w(exception, "Cannot parse saved shortcut intent")
           return null
         }
@@ -115,7 +118,10 @@ object LaunchIntentFactory {
       intent: Intent,
   ): Boolean {
     val activityInfo = packageManager.resolveActivity(intent, 0)?.activityInfo ?: return false
-    return activityInfo.exported && activityInfo.permission == null
+    return activityInfo.exported &&
+        activityInfo.permission == null &&
+        activityInfo.enabled &&
+        activityInfo.applicationInfo.enabled
   }
 
   fun createHostAppIntent(

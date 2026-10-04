@@ -1383,6 +1383,7 @@ private fun AppPickerScreen(
         ShortcutPickerList(
             shortcuts = shortcuts.copy(groups = filteredShortcuts),
             selectedShortcut = selectedShortcut,
+            query = query,
             onShortcutSelected = onShortcutSelected,
             onCreateShortcut = { creator, appLabel ->
               createFailed = false

@@ -42,6 +42,7 @@ import com.pedronveloso.a11ybutton.model.ShortcutTarget
 internal fun ShortcutPickerList(
     shortcuts: AppPickerShortcuts,
     selectedShortcut: ShortcutTarget?,
+    query: String,
     onShortcutSelected: (ShortcutTarget) -> Unit,
     onCreateShortcut: (ShortcutEntry.Creator, String) -> Unit,
     modifier: Modifier = Modifier,
@@ -50,8 +51,15 @@ internal fun ShortcutPickerList(
     if (shortcuts.isLoading) {
       CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
     } else if (shortcuts.groups.isEmpty()) {
+      // With no search, nothing was filtered out: the device simply exposes no shortcuts.
+      val emptyText =
+          if (query.isBlank()) {
+            R.string.picker_shortcuts_none
+          } else {
+            R.string.picker_shortcuts_empty
+          }
       Text(
-          text = stringResource(id = R.string.picker_shortcuts_empty),
+          text = stringResource(id = emptyText),
           style = MaterialTheme.typography.bodyMedium,
           modifier = Modifier.align(Alignment.Center),
       )

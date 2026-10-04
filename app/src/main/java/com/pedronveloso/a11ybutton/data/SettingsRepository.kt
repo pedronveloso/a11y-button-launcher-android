@@ -165,11 +165,12 @@ private fun MutablePreferences.clearShortcut() {
 private fun Preferences.selectedShortcut(): ShortcutTarget? {
   val packageName = this[SettingsRepository.SELECTED_SHORTCUT_PACKAGE_KEY].nullIfBlank()
   val intentUri = this[SettingsRepository.SELECTED_SHORTCUT_INTENT_URI_KEY].nullIfBlank()
-  if (packageName == null || intentUri == null) return null
+  val label = this[SettingsRepository.SELECTED_SHORTCUT_LABEL_KEY].nullIfBlank()
+  if (packageName == null || intentUri == null || label == null) return null
   return ShortcutTarget(
       packageName = packageName,
       shortcutId = this[SettingsRepository.SELECTED_SHORTCUT_ID_KEY].nullIfBlank(),
-      label = this[SettingsRepository.SELECTED_SHORTCUT_LABEL_KEY].orEmpty(),
+      label = label,
       intentUri = intentUri,
   )
 }

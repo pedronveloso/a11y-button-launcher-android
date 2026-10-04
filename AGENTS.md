@@ -31,6 +31,8 @@ Lessons from PR reviews, so they are not repeated:
 - Treat intents from other apps as untrusted: clear the selector, strip URI grant flags, and pin the package. Clear the selector before `setPackage`, which throws while one is set.
 - `Intent.toUri` keeps only scalar extras and `setData` and `setType` clear each other. Reject what would not survive saving, and use `setDataAndType`.
 - Skip what cannot be reproduced faithfully (static shortcuts with several intents or typed extras) instead of approximating it.
+- Static shortcuts that declare `android:flags` are skipped, not approximated: flags such as CLEAR_TOP or document flags change launch behavior and survive `toUri`/`parseUri`.
+- `Intent.parseUri` throws unchecked exceptions too (for example `NumberFormatException` on a bad `launchFlags`). Catch `Exception` when parsing a URI that came from storage or backup.
 - Lazy list keys and selection checks must use the same full identity, never a field that can repeat.
 - State that must outlive an activity recreation, such as a pending activity-result request, belongs in `rememberSaveable`, not `remember`.
 - Instrumented tests that tap or assert on lower parts of a screen must `performScrollTo()` first, since screens grow taller than the test device.

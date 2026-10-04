@@ -93,6 +93,8 @@ class ShortcutsRepository(
                     // Several intents describe a back stack we cannot launch, see toEntry.
                     it.intentCount++
                     it.intent = parser.readIntent()
+                    // Declared flags would change launch behavior (CLEAR_TOP, document flags).
+                    if (parser.getAttributeValue(ANDROID_NS, "flags") != null) it.hasFlags = true
                     insideIntent = true
                   }
               // Only categories inside <intent> belong to the launch intent. A <categories>
@@ -163,7 +165,11 @@ class ShortcutsRepository(
         ) ?: return null
     if (!LaunchIntentFactory.isLaunchable(packageManager, sanitized)) return null
     val label =
-        result.getStringExtra(Intent.EXTRA_SHORTCUT_NAME).orEmpty().ifBlank { fallbackLabel }
+        result
+            .getStringExtra(Intent.EXTRA_SHORTCUT_NAME)
+            .orEmpty()
+            .ifBlank { fallbackLabel }
+            .ifBlank { packageName }
     return ShortcutTarget(
         packageName = packageName,
         shortcutId = null,
@@ -180,21 +186,25 @@ class ShortcutsRepository(
     var intent: Intent? = null
     var intentCount = 0
     var hasExtras = false
+    var hasFlags = false
 
     fun toEntry(packageName: String): ShortcutEntry? {
       val intent = intent ?: return null
       val label = label?.takeIf { it.isNotBlank() } ?: return null
-      // Extras are skipped: the XML does not say whether a value is a string, int or boolean, and
-      // launching with a wrongly typed extra would misbehave quietly.
-      if (!enabled || hasExtras) return null
-      // We launch a single activity, so a shortcut declaring a back stack would lose its history.
-      if (intentCount > 1) return null
+      val accepted =
+          isAcceptableShortcutDeclaration(
+              enabled = enabled,
+              hasExtras = hasExtras,
+              hasFlags = hasFlags,
+              intentCount = intentCount,
+              hasTarget = intent.component != null || intent.`package` != null,
+          )
+      if (!accepted) return null
       val sanitized =
           LaunchIntentFactory.createShortcutIntent(
               intentUri = intent.toUri(Intent.URI_INTENT_SCHEME),
               expectedPackage = packageName,
           ) ?: return null
-      if (intent.component == null && intent.`package` == null) return null
       // Hide shortcuts whose target we cannot start (not exported, or permission protected).
       if (!LaunchIntentFactory.isLaunchable(packageManager, sanitized)) return null
       return ShortcutEntry.Ready(
@@ -239,6 +249,22 @@ class ShortcutsRepository(
     }
   }
 }
+
+/**
+ * Whether a static shortcut declaration is one we can reproduce faithfully. Anything we would have
+ * to approximate is skipped instead:
+ * - disabled shortcuts, and ones without an explicit component or package to launch;
+ * - extras, since the XML does not say whether a value is a string, int or boolean;
+ * - flags, which would change launch behavior (CLEAR_TOP, document flags);
+ * - several intents, which describe a back stack while we launch a single activity.
+ */
+internal fun isAcceptableShortcutDeclaration(
+    enabled: Boolean,
+    hasExtras: Boolean,
+    hasFlags: Boolean,
+    intentCount: Int,
+    hasTarget: Boolean,
+): Boolean = enabled && !hasExtras && !hasFlags && intentCount <= 1 && hasTarget
 
 /** Groups entries by app, apps A-Z, entries A-Z within an app; apps with no entries are dropped. */
 internal fun buildShortcutGroups(

@@ -101,6 +101,7 @@
     <string name="picker_mode_shortcuts">App shortcuts</string>
     <string name="picker_search_shortcuts_label">Search app shortcuts</string>
     <string name="picker_shortcuts_empty">No app shortcuts match this search.</string>
+    <string name="picker_shortcuts_none">No app shortcuts available on this device.</string>
     <string name="picker_shortcut_create_hint">Opens the app so you can create a shortcut</string>
     <string name="picker_shortcut_create_failed">That app did not return a usable shortcut. Try again or pick another.</string>
     <string name="debug_open_menu">Open debug menu</string>

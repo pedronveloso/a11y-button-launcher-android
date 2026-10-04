@@ -118,9 +118,9 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
 
           is SelectedAppState.ValidShortcut -> {
             Timber.i(
-                "Attempting to launch selected shortcut label=%s package=%s",
-                selectionState.shortcut.label,
+                "Attempting to launch selected shortcut package=%s id=%s",
                 selectionState.shortcut.packageName,
+                selectionState.shortcut.shortcutId,
             )
             launchShortcut(selectionState.shortcut)
           }
