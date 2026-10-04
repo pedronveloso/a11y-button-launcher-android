@@ -5,6 +5,9 @@
 package com.pedronveloso.a11ybutton
 
 import android.Manifest
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -15,6 +18,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -58,10 +62,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -94,14 +100,19 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
+import com.pedronveloso.a11ybutton.data.filterByQuery
 import com.pedronveloso.a11ybutton.logging.InMemoryLogStore
 import com.pedronveloso.a11ybutton.logging.LogEntries
 import com.pedronveloso.a11ybutton.logging.LogEntry
+import com.pedronveloso.a11ybutton.model.AppPickerShortcuts
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.model.ShortcutEntry
+import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import com.pedronveloso.a11ybutton.model.ThemeMode
+import com.pedronveloso.a11ybutton.model.isConfigured
 import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
 import com.pedronveloso.a11ybutton.service.ServiceDiagnostics
 import com.pedronveloso.a11ybutton.service.ServiceDiagnosticsStore
@@ -110,6 +121,7 @@ import com.pedronveloso.a11ybutton.ui.BackgroundProtectionBrand
 import com.pedronveloso.a11ybutton.ui.MainScreenState
 import com.pedronveloso.a11ybutton.ui.MainViewModel
 import com.pedronveloso.a11ybutton.ui.SetupReadiness
+import com.pedronveloso.a11ybutton.ui.ShortcutPickerList
 import com.pedronveloso.a11ybutton.ui.preview.ThemePreviews
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
 import com.pedronveloso.a11ybutton.ui.theme.a11YButtonStatusPalette
@@ -117,6 +129,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
@@ -179,6 +192,7 @@ fun MainRoute(
 ) {
   val screenState by viewModel.screenState.collectAsStateWithLifecycle()
   val pickerApps by viewModel.pickerApps.collectAsStateWithLifecycle()
+  val pickerShortcuts by viewModel.pickerShortcuts.collectAsStateWithLifecycle()
   val logEntries by InMemoryLogStore.entries.collectAsStateWithLifecycle()
   val diagnostics by ServiceDiagnosticsStore.state.collectAsStateWithLifecycle()
   val lifecycleOwner = LocalLifecycleOwner.current
@@ -312,12 +326,31 @@ fun MainRoute(
       BackHandler { destination = MainDestination.Home }
       AppPickerScreen(
           apps = pickerApps,
+          shortcuts = pickerShortcuts,
           selectedComponentName =
               (screenState.selectedAppState as? SelectedAppState.Valid)?.app?.componentName,
+          selectedShortcut =
+              (screenState.selectedAppState as? SelectedAppState.ValidShortcut)?.shortcut,
+          initialMode =
+              if (screenState.selectedAppState is SelectedAppState.ValidShortcut) {
+                PickerMode.Shortcuts
+              } else {
+                PickerMode.Apps
+              },
           onBack = { destination = MainDestination.Home },
           onAppSelected = { app ->
             viewModel.selectApp(app)
             destination = MainDestination.Home
+          },
+          onShortcutsRequested = viewModel::ensureShortcutsLoaded,
+          onShortcutSelected = { shortcut ->
+            viewModel.selectShortcut(shortcut)
+            destination = MainDestination.Home
+          },
+          onCreatedShortcut = { creator, appLabel, result ->
+            val saved = viewModel.selectCreatedShortcut(creator, appLabel, result)
+            if (saved) destination = MainDestination.Home
+            saved
           },
           showDebugAction = canOpenDebugTools,
           onDebugClick = { destination = MainDestination.DebugMenu },
@@ -467,12 +500,16 @@ fun HomeScreen(
       ) {
         Text(text = stringResource(id = R.string.home_open_faq))
       }
-      if (!screenState.isReady) {
-        Button(
-            onClick = onOpenSetup,
-            modifier = Modifier.fillMaxWidth().testTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG),
-        ) {
-          Text(text = stringResource(id = R.string.home_open_setup))
+      // Setup is also where users fix a "ready" app that has silently stopped working, so it is
+      // always reachable; only its emphasis changes with readiness.
+      val setupButtonModifier = Modifier.fillMaxWidth().testTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG)
+      if (screenState.isReady) {
+        OutlinedButton(onClick = onOpenSetup, modifier = setupButtonModifier) {
+          Text(text = stringResource(id = R.string.home_open_setup_help))
+        }
+      } else {
+        Button(onClick = onOpenSetup, modifier = setupButtonModifier) {
+          Text(text = stringResource(id = R.string.home_open_setup_help))
         }
       }
     }
@@ -603,7 +640,7 @@ private fun StatusPillRow(
           label = stringResource(id = R.string.main_setup_selected_app_label),
           value = selectedAppStatusLabel(screenState.selectedAppState),
           tone =
-              if (screenState.selectedAppState is SelectedAppState.Valid) {
+              if (screenState.selectedAppState.isConfigured) {
                 StatusTone.Positive
               } else {
                 StatusTone.Attention
@@ -658,6 +695,15 @@ private fun StatusBadge(
 }
 
 @Composable
+private fun SelectedTypeLabel(text: String) {
+  Text(
+      text = text,
+      style = MaterialTheme.typography.labelLarge,
+      color = MaterialTheme.colorScheme.primary,
+  )
+}
+
+@Composable
 private fun SelectedAppCard(
     selectedAppState: SelectedAppState,
     onChooseApp: () -> Unit,
@@ -669,10 +715,26 @@ private fun SelectedAppCard(
   ) {
     when (selectedAppState) {
       is SelectedAppState.Valid -> {
+        SelectedTypeLabel(text = stringResource(id = R.string.main_selected_type_app))
         RowWithIcon(
             label = selectedAppState.app.label,
             supportingText = selectedAppState.app.packageName,
             componentName = selectedAppState.app.componentName,
+        )
+        OutlinedButton(
+            onClick = onChooseApp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(text = stringResource(id = R.string.home_selected_app_change))
+        }
+      }
+
+      is SelectedAppState.ValidShortcut -> {
+        SelectedTypeLabel(text = stringResource(id = R.string.main_selected_type_shortcut))
+        RowWithIcon(
+            label = selectedAppState.shortcut.label,
+            supportingText = selectedAppState.shortcut.packageName,
+            packageName = selectedAppState.shortcut.packageName,
         )
         OutlinedButton(
             onClick = onChooseApp,
@@ -813,7 +875,7 @@ private fun SetupScreen(
       ) {
         Text(
             text =
-                if (screenState.selectedAppState is SelectedAppState.Valid) {
+                if (screenState.selectedAppState.isConfigured) {
                   stringResource(id = R.string.main_action_change_app)
                 } else {
                   stringResource(id = R.string.main_action_choose_app)
@@ -1132,14 +1194,37 @@ private fun SelectedAppRow(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun AppPickerScreen(
     apps: AppPickerApps,
+    shortcuts: AppPickerShortcuts,
     selectedComponentName: String?,
+    selectedShortcut: ShortcutTarget?,
+    initialMode: PickerMode,
     onBack: () -> Unit,
     onAppSelected: (InstalledApp) -> Unit,
+    onShortcutsRequested: () -> Unit,
+    onShortcutSelected: (ShortcutTarget) -> Unit,
+    onCreatedShortcut: suspend (ShortcutEntry.Creator, String, Intent?) -> Boolean,
     showDebugAction: Boolean,
     onDebugClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   var query by rememberSaveable { mutableStateOf("") }
+  var mode by rememberSaveable { mutableStateOf(initialMode) }
+  var createFailed by remember { mutableStateOf(false) }
+  var pendingCreator by remember { mutableStateOf<Pair<ShortcutEntry.Creator, String>?>(null) }
+  val scope = rememberCoroutineScope()
+  val createShortcutLauncher =
+      rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result
+        ->
+        val pending = pendingCreator ?: return@rememberLauncherForActivityResult
+        pendingCreator = null
+        if (result.resultCode == Activity.RESULT_OK) {
+          scope.launch {
+            createFailed = !onCreatedShortcut(pending.first, pending.second, result.data)
+          }
+        }
+      }
+  LaunchedEffect(mode) { if (mode == PickerMode.Shortcuts) onShortcutsRequested() }
+  val filteredShortcuts = remember(shortcuts, query) { shortcuts.groups.filterByQuery(query) }
   val filteredApps =
       remember(apps, query) {
         apps.items.filter { app ->
@@ -1165,12 +1250,54 @@ private fun AppPickerScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
     ) {
+      SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        PickerMode.entries.forEachIndexed { index, option ->
+          SegmentedButton(
+              selected = mode == option,
+              onClick = {
+                mode = option
+                createFailed = false
+              },
+              shape = SegmentedButtonDefaults.itemShape(index, PickerMode.entries.size),
+              label = { Text(text = stringResource(id = option.labelRes)) },
+          )
+        }
+      }
+      Text(
+          text = stringResource(id = R.string.picker_mode_note),
+          style = MaterialTheme.typography.bodySmall,
+      )
+      if (mode == PickerMode.Shortcuts) {
+        Text(
+            text = stringResource(id = R.string.picker_shortcuts_limit_note),
+            style = MaterialTheme.typography.bodySmall,
+        )
+      }
+      if (createFailed) {
+        Text(
+            text = stringResource(id = R.string.picker_shortcut_create_failed),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+        )
+      }
       OutlinedTextField(
           value = query,
           onValueChange = { query = it },
           modifier = Modifier.fillMaxWidth(),
           singleLine = true,
-          label = { Text(text = stringResource(id = R.string.picker_search_label)) },
+          label = {
+            Text(
+                text =
+                    stringResource(
+                        id =
+                            if (mode == PickerMode.Shortcuts) {
+                              R.string.picker_search_shortcuts_label
+                            } else {
+                              R.string.picker_search_label
+                            },
+                    ),
+            )
+          },
           keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
       )
       OutlinedButton(
@@ -1180,7 +1307,29 @@ private fun AppPickerScreen(
         Text(text = stringResource(id = R.string.picker_back))
       }
 
-      if (apps.isLoading) {
+      if (mode == PickerMode.Shortcuts) {
+        ShortcutPickerList(
+            shortcuts = shortcuts.copy(groups = filteredShortcuts),
+            selectedShortcut = selectedShortcut,
+            onShortcutSelected = onShortcutSelected,
+            onCreateShortcut = { creator, appLabel ->
+              createFailed = false
+              pendingCreator = creator to appLabel
+              try {
+                createShortcutLauncher.launch(
+                    Intent(Intent.ACTION_CREATE_SHORTCUT)
+                        .setComponent(ComponentName.unflattenFromString(creator.componentName)),
+                )
+              } catch (exception: ActivityNotFoundException) {
+                pendingCreator = null
+                createFailed = true
+              } catch (exception: SecurityException) {
+                pendingCreator = null
+                createFailed = true
+              }
+            },
+        )
+      } else if (apps.isLoading) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier.fillMaxSize(),
@@ -1255,6 +1404,13 @@ private fun AppPickerScreen(
       }
     }
   }
+}
+
+private enum class PickerMode(
+    @StringRes val labelRes: Int,
+) {
+  Apps(R.string.picker_mode_apps),
+  Shortcuts(R.string.picker_mode_shortcuts),
 }
 
 @Composable
@@ -1439,8 +1595,9 @@ private fun LogEntryCard(
 private fun RowWithIcon(
     label: String,
     supportingText: String,
-    componentName: String,
     modifier: Modifier = Modifier,
+    componentName: String? = null,
+    packageName: String? = null,
 ) {
   Column(
       verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -1453,6 +1610,7 @@ private fun RowWithIcon(
     ) {
       AppIcon(
           componentName = componentName,
+          packageName = packageName,
           contentDescription = null,
       )
       Column(
@@ -1478,17 +1636,24 @@ private fun RowWithIcon(
 }
 
 @Composable
-private fun AppIcon(
-    componentName: String,
+internal fun AppIcon(
     contentDescription: String?,
     modifier: Modifier = Modifier,
+    componentName: String? = null,
+    packageName: String? = null,
 ) {
   val context = LocalContext.current
   val repository = remember(context) { InstalledAppsRepository(context) }
   val iconBitmap by
-      produceState(initialValue = null as android.graphics.Bitmap?, componentName) {
+      produceState(initialValue = null as android.graphics.Bitmap?, componentName, packageName) {
         value =
-            withContext(Dispatchers.IO) { repository.loadIconBitmap(componentName, sizePx = 96) }
+            withContext(Dispatchers.IO) {
+              when {
+                componentName != null -> repository.loadIconBitmap(componentName, sizePx = 96)
+                packageName != null -> repository.loadPackageIconBitmap(packageName, sizePx = 96)
+                else -> null
+              }
+            }
       }
 
   if (iconBitmap != null) {
@@ -1617,7 +1782,8 @@ private fun backgroundProtectionIntroBody(requiredBrand: BackgroundProtectionBra
 @Composable
 private fun selectedAppStatusLabel(selectedAppState: SelectedAppState): String =
     when (selectedAppState) {
-      is SelectedAppState.Valid -> stringResource(id = R.string.main_status_app_selected)
+      is SelectedAppState.Valid,
+      is SelectedAppState.ValidShortcut -> stringResource(id = R.string.main_status_app_selected)
       is SelectedAppState.Invalid -> stringResource(id = R.string.main_status_app_invalid)
       SelectedAppState.None -> stringResource(id = R.string.main_status_app_not_selected)
     }
@@ -1631,6 +1797,8 @@ private fun invalidSelectionMessage(reason: InvalidSelectionReason): String =
           stringResource(id = R.string.main_selected_app_changed)
       InvalidSelectionReason.NotLaunchable ->
           stringResource(id = R.string.main_selected_app_not_launchable)
+      InvalidSelectionReason.ShortcutNotResolvable ->
+          stringResource(id = R.string.main_selected_shortcut_not_resolvable)
     }
 
 @Composable
@@ -1782,9 +1950,15 @@ private fun AppPickerPreview() {
                         ),
                     ),
             ),
+        shortcuts = AppPickerShortcuts(),
         selectedComponentName = "com.example.reader/.HomeActivity",
+        selectedShortcut = null,
+        initialMode = PickerMode.Apps,
         onBack = {},
         onAppSelected = {},
+        onShortcutsRequested = {},
+        onShortcutSelected = {},
+        onCreatedShortcut = { _, _, _ -> true },
         showDebugAction = true,
         onDebugClick = {},
     )

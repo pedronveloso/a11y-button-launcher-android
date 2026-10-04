@@ -17,6 +17,8 @@ import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.model.ShortcutTarget
+import com.pedronveloso.a11ybutton.service.LaunchIntentFactory
 import java.text.Collator
 import timber.log.Timber
 
@@ -41,6 +43,9 @@ class InstalledAppsRepository(
           .also { Timber.d("Loaded %s launchable apps", it.size) }
 
   fun validateSelection(settings: AppSettings): SelectedAppState {
+    settings.selectedShortcut?.let {
+      return validateShortcut(it)
+    }
     val packageName = settings.selectedPackageName ?: return SelectedAppState.None
     val componentName = settings.selectedComponentName ?: return SelectedAppState.None
     Timber.d(
@@ -99,6 +104,35 @@ class InstalledAppsRepository(
     }
   }
 
+  private fun validateShortcut(shortcut: ShortcutTarget): SelectedAppState {
+    fun invalid(reason: InvalidSelectionReason) =
+        SelectedAppState.Invalid(
+            packageName = shortcut.packageName,
+            componentName = null,
+            reason = reason,
+        )
+
+    val applicationInfo =
+        try {
+          packageManager.getApplicationInfo(shortcut.packageName, 0)
+        } catch (exception: PackageManager.NameNotFoundException) {
+          Timber.w(exception, "Shortcut package is no longer installed: %s", shortcut.packageName)
+          return invalid(InvalidSelectionReason.MissingApp)
+        }
+    if (!applicationInfo.enabled) {
+      return invalid(InvalidSelectionReason.DisabledApp)
+    }
+    val intent =
+        LaunchIntentFactory.createShortcutIntent(shortcut.intentUri, shortcut.packageName)
+            ?: return invalid(InvalidSelectionReason.ShortcutNotResolvable)
+    return if (intent.resolveActivity(packageManager) != null) {
+      SelectedAppState.ValidShortcut(shortcut)
+    } else {
+      Timber.w("Shortcut intent no longer resolves for package=%s", shortcut.packageName)
+      invalid(InvalidSelectionReason.ShortcutNotResolvable)
+    }
+  }
+
   fun loadIcon(componentName: String): Drawable? {
     val component =
         ComponentName.unflattenFromString(componentName)
@@ -121,6 +155,21 @@ class InstalledAppsRepository(
     return loadIcon(componentName)?.toBitmap(width = sizePx, height = sizePx)?.also {
       iconCache.put(componentName, it)
     }
+  }
+
+  fun loadPackageIconBitmap(packageName: String, sizePx: Int): Bitmap? {
+    val cacheKey = "package:$packageName"
+    iconCache.get(cacheKey)?.let {
+      return it
+    }
+
+    return runCatching { packageManager.getApplicationIcon(packageName) }
+        .onFailure { exception ->
+          Timber.w(exception, "Failed to load icon for package=%s", packageName)
+        }
+        .getOrNull()
+        ?.toBitmap(width = sizePx, height = sizePx)
+        ?.also { iconCache.put(cacheKey, it) }
   }
 
   private fun resolveMissingComponentReason(packageName: String): InvalidSelectionReason =

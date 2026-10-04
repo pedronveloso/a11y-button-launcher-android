@@ -18,9 +18,9 @@ Android exposes an accessibility button and accessibility shortcut, but almost a
 
 ## What it does
 
-- Select one installed launchable app.
+- Select one thing for the button to open: an installed launchable app, or one of its app shortcuts.
 - Enable an accessibility service that listens only for the accessibility button/shortcut event.
-- Launch the selected app when triggered.
+- Launch the selected app or app shortcut when triggered.
 - Recover gracefully if the selected app is uninstalled or disabled, with clear guidance.
 - Show guidance when the service is disabled or interrupted, including device-specific background-protection tips for aggressive OEMs.
 
@@ -30,24 +30,24 @@ No analytics, ads, cloud sync, accounts, crash-reporting SDKs, or network data c
 
 ## Product principles
 
-1. **Focused** — one trigger, one app. Reject features that turn it into a general launcher, macro engine, or overlay system.
+1. **Focused** — one trigger, one action (an app or an app shortcut). Reject features that turn it into a general launcher, macro engine, or overlay system.
 2. **Native-first** — rely on Android's built-in shortcut behavior; no duplicated system UI.
 3. **Transparent** — clearly explain why accessibility permission is needed and exactly what the service does.
 4. **Private by default** — local settings only; no telemetry of any kind.
-5. **Fail clearly** — if the selected app can't launch, say what happened and how to fix it. No silent failures.
+5. **Fail clearly** — if the selected app or app shortcut can't launch, say what happened and how to fix it. No silent failures. Setup and troubleshooting stay reachable even when everything looks fine.
 
 ## Setup flow
 
 1. Open the app and accept the accessibility disclosure.
 2. Enable the app's accessibility service in Android Accessibility settings.
-3. Pick one installed app from the picker.
+3. Pick one app, or one app shortcut, from the picker.
 4. Use the accessibility button/shortcut to launch it.
 
 After setup the app should feel invisible: trigger → app opens. No intermediate screens unless something needs fixing.
 
 ## Scope
 
-**Current:** one selected app, one shortcut action, local-only configuration, clear setup and recovery states.
+**Current:** one selected app or app shortcut, one trigger, local-only configuration, clear setup and recovery states.
 
 **Possible future:** better per-Android-version onboarding, more OEM-specific guidance (Xiaomi, Samsung, etc.), improved copy for why Android disables accessibility services after updates, optional local config import/export.
 

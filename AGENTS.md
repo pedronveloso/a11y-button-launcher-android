@@ -22,6 +22,9 @@ Follow Kotlin conventions with 4-space indentation and keep code formatted by Sp
 ## Testing Guidelines
 Add fast logic tests to `app/src/test/java/...` and Android-dependent tests to `app/src/androidTest/java/...`. Name test files after the subject under test, for example `MainActivityTest.kt`, and use descriptive test names such as `button_isAnnouncedToAccessibilityServices`. Run `./gradlew testDebugUnitTest lintDebug` before opening a PR; add instrumentation coverage when UI or platform behavior changes.
 
+## UX Principles
+Never hide key screens or options behind a "completion" state. Setup, troubleshooting/FAQ, the picker, and preferences must stay reachable in every state, including when the app believes it is fully configured, because the app can think everything is fine while the user is the one seeing it fail. Completion may change emphasis (tone, ordering, button style, wording), never availability. Add or update a UI test when you touch an entry point like this. When adding an option or mode (for example choosing an app versus an app shortcut), update the copy at its entry point so users can tell the option exists.
+
 ## Commit & Pull Request Guidelines
 Current history uses short, imperative commit subjects such as `Initial project setup with CI tooling`. Keep commits focused and under about 72 characters when practical. Pull requests should include a concise summary, linked issue if applicable, test notes, and screenshots or recordings for UI changes. Call out any accessibility impact explicitly.
 

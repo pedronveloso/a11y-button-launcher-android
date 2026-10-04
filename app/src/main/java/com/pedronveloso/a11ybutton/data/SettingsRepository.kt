@@ -6,6 +6,7 @@ package com.pedronveloso.a11ybutton.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -14,6 +15,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.NotificationPreference
+import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import com.pedronveloso.a11ybutton.model.ThemeMode
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
@@ -82,12 +84,41 @@ class SettingsRepository(
     dataStore.edit { preferences ->
       preferences[SELECTED_PACKAGE_NAME_KEY] = packageName.orEmpty()
       preferences[SELECTED_COMPONENT_NAME_KEY] = componentName.orEmpty()
+      preferences.clearShortcut()
     }
+  }
+
+  /** Selects a shortcut as the button's target, replacing any selected app. */
+  suspend fun updateShortcutSelection(shortcut: ShortcutTarget) {
+    Timber.i(
+        "Updating selected shortcut to package=%s id=%s",
+        shortcut.packageName,
+        shortcut.shortcutId,
+    )
+    dataStore.edit { preferences ->
+      preferences[SELECTED_PACKAGE_NAME_KEY] = ""
+      preferences[SELECTED_COMPONENT_NAME_KEY] = ""
+      preferences[SELECTED_SHORTCUT_PACKAGE_KEY] = shortcut.packageName
+      preferences[SELECTED_SHORTCUT_ID_KEY] = shortcut.shortcutId.orEmpty()
+      preferences[SELECTED_SHORTCUT_LABEL_KEY] = shortcut.label
+      preferences[SELECTED_SHORTCUT_INTENT_URI_KEY] = shortcut.intentUri
+    }
+  }
+
+  /** Clears whichever target is selected, app or shortcut. */
+  suspend fun clearSelection() {
+    Timber.i("Clearing selected target")
+    updateSelection(packageName = null, componentName = null)
   }
 
   companion object {
     internal val SELECTED_PACKAGE_NAME_KEY = stringPreferencesKey("selected_package_name")
     internal val SELECTED_COMPONENT_NAME_KEY = stringPreferencesKey("selected_component_name")
+    internal val SELECTED_SHORTCUT_PACKAGE_KEY = stringPreferencesKey("selected_shortcut_package")
+    internal val SELECTED_SHORTCUT_ID_KEY = stringPreferencesKey("selected_shortcut_id")
+    internal val SELECTED_SHORTCUT_LABEL_KEY = stringPreferencesKey("selected_shortcut_label")
+    internal val SELECTED_SHORTCUT_INTENT_URI_KEY =
+        stringPreferencesKey("selected_shortcut_intent_uri")
     internal val DISCLOSURE_ACCEPTED_KEY = booleanPreferencesKey("disclosure_accepted")
     internal val XIAOMI_RECENTS_LOCK_CONFIRMED_KEY =
         booleanPreferencesKey("xiaomi_recents_lock_confirmed")
@@ -102,6 +133,7 @@ class SettingsRepository(
         AppSettings(
             selectedPackageName = preferences[SELECTED_PACKAGE_NAME_KEY].nullIfBlank(),
             selectedComponentName = preferences[SELECTED_COMPONENT_NAME_KEY].nullIfBlank(),
+            selectedShortcut = preferences.selectedShortcut(),
             disclosureAccepted = preferences[DISCLOSURE_ACCEPTED_KEY] ?: false,
             xiaomiRecentsLockConfirmed = preferences[XIAOMI_RECENTS_LOCK_CONFIRMED_KEY] ?: false,
             notificationPreference = preferences.notificationPreference(),
@@ -122,6 +154,25 @@ class SettingsRepository(
 }
 
 private fun String?.nullIfBlank(): String? = if (isNullOrBlank()) null else this
+
+private fun MutablePreferences.clearShortcut() {
+  remove(SettingsRepository.SELECTED_SHORTCUT_PACKAGE_KEY)
+  remove(SettingsRepository.SELECTED_SHORTCUT_ID_KEY)
+  remove(SettingsRepository.SELECTED_SHORTCUT_LABEL_KEY)
+  remove(SettingsRepository.SELECTED_SHORTCUT_INTENT_URI_KEY)
+}
+
+private fun Preferences.selectedShortcut(): ShortcutTarget? {
+  val packageName = this[SettingsRepository.SELECTED_SHORTCUT_PACKAGE_KEY].nullIfBlank()
+  val intentUri = this[SettingsRepository.SELECTED_SHORTCUT_INTENT_URI_KEY].nullIfBlank()
+  if (packageName == null || intentUri == null) return null
+  return ShortcutTarget(
+      packageName = packageName,
+      shortcutId = this[SettingsRepository.SELECTED_SHORTCUT_ID_KEY].nullIfBlank(),
+      label = this[SettingsRepository.SELECTED_SHORTCUT_LABEL_KEY].orEmpty(),
+      intentUri = intentUri,
+  )
+}
 
 private fun Preferences.notificationPreference(): NotificationPreference {
   val storedPreference =

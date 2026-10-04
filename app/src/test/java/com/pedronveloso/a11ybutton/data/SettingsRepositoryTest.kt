@@ -10,10 +10,12 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.NotificationPreference
+import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class SettingsRepositoryTest {
@@ -102,11 +104,67 @@ class SettingsRepositoryTest {
     assertEquals(NotificationPreference.OptedOut, settings.notificationPreference)
   }
 
+  @Test
+  fun updateShortcutSelection_replacesSelectedApp() = runTest {
+    val repository = createRepository()
+    repository.updateSelection("com.example.reader", "com.example.reader/.HomeActivity")
+
+    repository.updateShortcutSelection(SHORTCUT)
+
+    val settings = repository.settings.first()
+    assertEquals(SHORTCUT, settings.selectedShortcut)
+    assertNull(settings.selectedPackageName)
+    assertNull(settings.selectedComponentName)
+  }
+
+  @Test
+  fun updateSelection_replacesSelectedShortcut() = runTest {
+    val repository = createRepository()
+    repository.updateShortcutSelection(SHORTCUT)
+
+    repository.updateSelection("com.example.reader", "com.example.reader/.HomeActivity")
+
+    val settings = repository.settings.first()
+    assertNull(settings.selectedShortcut)
+    assertEquals("com.example.reader", settings.selectedPackageName)
+  }
+
+  @Test
+  fun clearSelection_clearsShortcut() = runTest {
+    val repository = createRepository()
+    repository.updateShortcutSelection(SHORTCUT)
+
+    repository.clearSelection()
+
+    assertEquals(AppSettings(), repository.settings.first())
+  }
+
+  @Test
+  fun preferencesToAppSettings_ignoresShortcutMissingItsIntent() {
+    val preferences: MutablePreferences =
+        mutablePreferencesOf(SettingsRepository.SELECTED_SHORTCUT_PACKAGE_KEY to "com.example.mail")
+
+    val settings = SettingsRepository.preferencesToAppSettings(preferences)
+
+    assertNull(settings.selectedShortcut)
+  }
+
   private fun createRepository(): SettingsRepository {
     val file = File.createTempFile("settings-repository-test", ".preferences_pb")
     file.deleteOnExit()
     return SettingsRepository(
         PreferenceDataStoreFactory.create(produceFile = { file }),
     )
+  }
+
+  private companion object {
+    val SHORTCUT =
+        ShortcutTarget(
+            packageName = "com.example.mail",
+            shortcutId = "compose",
+            label = "Compose",
+            intentUri =
+                "intent:#Intent;action=android.intent.action.VIEW;package=com.example.mail;end",
+        )
   }
 }
