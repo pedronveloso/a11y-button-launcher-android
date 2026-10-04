@@ -70,6 +70,19 @@ class SettingsRepositoryTest {
   }
 
   @Test
+  fun preferencesToAppSettings_dropsShortcutWithBlankLabel() {
+    val preferences: MutablePreferences =
+        mutablePreferencesOf(
+            SettingsRepository.SELECTED_SHORTCUT_PACKAGE_KEY to "com.example.mail",
+            SettingsRepository.SELECTED_SHORTCUT_LABEL_KEY to " ",
+            SettingsRepository.SELECTED_SHORTCUT_INTENT_URI_KEY to
+                "intent:#Intent;package=com.example.mail;end",
+        )
+
+    assertNull(SettingsRepository.preferencesToAppSettings(preferences).selectedShortcut)
+  }
+
+  @Test
   fun enableNotifications_setsEnabledAndClearsOptOut() = runTest {
     val repository = createRepository()
 

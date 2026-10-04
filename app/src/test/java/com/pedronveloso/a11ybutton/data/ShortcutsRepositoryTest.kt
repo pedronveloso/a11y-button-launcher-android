@@ -8,6 +8,7 @@ import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.ShortcutEntry
 import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -76,6 +77,51 @@ class ShortcutsRepositoryTest {
   fun filterByQuery_dropsAppsWithNoMatches() {
     assertTrue(sampleGroups().filterByQuery("nothing like this").isEmpty())
   }
+
+  @Test
+  fun isAcceptableShortcutDeclaration_acceptsAPlainSingleIntentShortcut() {
+    assertTrue(declaration())
+  }
+
+  @Test
+  fun isAcceptableShortcutDeclaration_rejectsDisabledShortcuts() {
+    assertFalse(declaration(enabled = false))
+  }
+
+  @Test
+  fun isAcceptableShortcutDeclaration_rejectsExtras() {
+    assertFalse(declaration(hasExtras = true))
+  }
+
+  @Test
+  fun isAcceptableShortcutDeclaration_rejectsDeclaredFlags() {
+    assertFalse(declaration(hasFlags = true))
+  }
+
+  @Test
+  fun isAcceptableShortcutDeclaration_rejectsSeveralIntents() {
+    assertFalse(declaration(intentCount = 2))
+  }
+
+  @Test
+  fun isAcceptableShortcutDeclaration_rejectsIntentsWithoutAComponentOrPackage() {
+    assertFalse(declaration(hasTarget = false))
+  }
+
+  private fun declaration(
+      enabled: Boolean = true,
+      hasExtras: Boolean = false,
+      hasFlags: Boolean = false,
+      intentCount: Int = 1,
+      hasTarget: Boolean = true,
+  ) =
+      isAcceptableShortcutDeclaration(
+          enabled = enabled,
+          hasExtras = hasExtras,
+          hasFlags = hasFlags,
+          intentCount = intentCount,
+          hasTarget = hasTarget,
+      )
 
   private fun sampleGroups() =
       buildShortcutGroups(

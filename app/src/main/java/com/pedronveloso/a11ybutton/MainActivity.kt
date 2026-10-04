@@ -1099,7 +1099,7 @@ private fun FaqScreen(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun PreferencesScreen(
+internal fun PreferencesScreen(
     themeMode: ThemeMode,
     onThemeModeChanged: (ThemeMode) -> Unit,
     onOpenFaq: () -> Unit,

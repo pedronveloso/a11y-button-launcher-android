@@ -63,6 +63,14 @@ class LaunchIntentFactoryTest {
   }
 
   @Test
+  fun createShortcutIntent_returnsNull_whenTheUriThrowsAnUncheckedException() {
+    // parseUri throws NumberFormatException, not URISyntaxException, for a bad launchFlags value.
+    val malformed = "intent:#Intent;package=$PACKAGE;launchFlags=zzz;end"
+
+    assertNull(LaunchIntentFactory.createShortcutIntent(malformed, PACKAGE))
+  }
+
+  @Test
   fun hasOnlyUriSafeExtras_isTrue_forScalarExtras() {
     val intent =
         Intent()
