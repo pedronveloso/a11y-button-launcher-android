@@ -1,4 +1,5 @@
 The button can now open an app shortcut, not just an app. For example, jump straight to composing a new message or starting a new note.
 
 - The picker has two modes: Apps and App shortcuts. Shortcuts are listed per app, and apps that let you create a shortcut offer it from the same list.
-- "Change App" is now "Change what opens", and the setup button on Home is now "Setup & troubleshooting". Both stay available once everything is configured.
+- Added an in-app FAQ section
+- Improve overall app UI/UX
