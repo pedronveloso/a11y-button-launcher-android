@@ -8,7 +8,7 @@ permalink: /privacy/
 
 **A11Y Button Launcher** is an open-source Android app developed by Pedro Veloso and licensed under the [Apache License 2.0](https://github.com/pedronveloso/a11y-button-launcher-android/blob/main/LICENSE).
 
-**Effective date:** April 21, 2026
+**Effective date:** October 4, 2026
 
 ---
 
@@ -20,7 +20,7 @@ A11Y Button Launcher does not collect, transmit, or share any personal data. Eve
 
 ## What the app does
 
-A11Y Button Launcher lets you assign any installed app to the Android accessibility button shortcut. When you press the accessibility button, the app you selected is launched.
+A11Y Button Launcher lets you assign any installed app, or one of an app's shortcuts (for example, composing a new message), to the Android accessibility button shortcut. When you press the accessibility button, the app or app shortcut you selected is launched.
 
 ---
 
@@ -30,7 +30,7 @@ A11Y Button Launcher lets you assign any installed app to the Android accessibil
 
 ### Data stored locally on your device
 
-The app saves a small set of preferences using Android's DataStore, which lives entirely on your device.
+The app saves a small set of preferences using Android's DataStore, which lives entirely on your device. This includes the app or app shortcut you picked: for a shortcut, its package name, identifier, display name, and the launch intent.
 
 None of this data ever leaves your device. There are no servers, no cloud sync, and no third-party SDKs that collect data.
 ---
@@ -45,9 +45,16 @@ This permission is required to register a callback for the Android accessibility
 
 Used to send an optional reminder notification when the accessibility service is not running. You can opt out at any time through the in-app settings or your device's notification settings.
 
-### Installed apps query
+### Installed apps and app shortcuts query
 
-Android requires apps to declare a `<queries>` intent filter to retrieve the list of launchable apps. This list is used only to let you pick an app to assign to the accessibility button. It is never transmitted anywhere.
+Android requires apps to declare `<queries>` entries to see other apps. A11Y Button Launcher declares two:
+
+- **Launchable apps** (`MAIN` / `LAUNCHER`). The list is used only to let you pick an app to assign to the accessibility button.
+- **Create-shortcut screens** (`CREATE_SHORTCUT`). These are used to find apps that can create a shortcut for you to pick.
+
+To list an app's shortcuts, the app reads the static shortcut definitions other apps publish (their `shortcuts.xml` metadata) and the display names stored in those apps' resources. It can also open an app's own create-shortcut screen when you ask it to. It does not read pinned or dynamic shortcuts, and it does not read any content inside other apps.
+
+None of this information is transmitted anywhere. Only the single app or shortcut you pick is saved, on your device.
 
 ---
 
