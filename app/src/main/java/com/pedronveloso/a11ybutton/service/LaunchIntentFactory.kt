@@ -7,6 +7,7 @@ package com.pedronveloso.a11ybutton.service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import com.pedronveloso.a11ybutton.MainActivity
 import timber.log.Timber
 
@@ -73,6 +74,19 @@ object LaunchIntentFactory {
           Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
 
   private const val SHORTCUT_FLAGS = Intent.FLAG_ACTIVITY_NEW_TASK
+
+  /**
+   * Whether this app is allowed to start [intent]. Explicit intents resolve even when the target is
+   * not exported, so exported and permission are checked here: launchers can start such shortcut
+   * targets through a privileged API, but a normal app would get a [SecurityException].
+   */
+  fun isLaunchable(
+      packageManager: PackageManager,
+      intent: Intent,
+  ): Boolean {
+    val activityInfo = packageManager.resolveActivity(intent, 0)?.activityInfo ?: return false
+    return activityInfo.exported && activityInfo.permission == null
+  }
 
   fun createHostAppIntent(
       context: Context,

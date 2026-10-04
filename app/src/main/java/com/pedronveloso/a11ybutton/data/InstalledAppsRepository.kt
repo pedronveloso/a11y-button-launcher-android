@@ -120,15 +120,23 @@ class InstalledAppsRepository(
           return invalid(InvalidSelectionReason.MissingApp)
         }
     if (!applicationInfo.enabled) {
+      Timber.w(
+          "Shortcut package is disabled: package=%s enabledSetting=%s",
+          shortcut.packageName,
+          packageManager.getApplicationEnabledSetting(shortcut.packageName),
+      )
       return invalid(InvalidSelectionReason.DisabledApp)
     }
     val intent =
         LaunchIntentFactory.createShortcutIntent(shortcut.intentUri, shortcut.packageName)
-            ?: return invalid(InvalidSelectionReason.ShortcutNotResolvable)
-    return if (intent.resolveActivity(packageManager) != null) {
+            ?: run {
+              Timber.w("Shortcut intent rejected for package=%s", shortcut.packageName)
+              return invalid(InvalidSelectionReason.ShortcutNotResolvable)
+            }
+    return if (LaunchIntentFactory.isLaunchable(packageManager, intent)) {
       SelectedAppState.ValidShortcut(shortcut)
     } else {
-      Timber.w("Shortcut intent no longer resolves for package=%s", shortcut.packageName)
+      Timber.w("Shortcut intent is not launchable for package=%s", shortcut.packageName)
       invalid(InvalidSelectionReason.ShortcutNotResolvable)
     }
   }

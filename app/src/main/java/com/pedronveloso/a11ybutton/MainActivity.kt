@@ -19,6 +19,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,8 +27,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,6 +44,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -74,11 +80,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
@@ -118,10 +126,12 @@ import com.pedronveloso.a11ybutton.service.ServiceDiagnostics
 import com.pedronveloso.a11ybutton.service.ServiceDiagnosticsStore
 import com.pedronveloso.a11ybutton.ui.AppPickerApps
 import com.pedronveloso.a11ybutton.ui.BackgroundProtectionBrand
+import com.pedronveloso.a11ybutton.ui.CollapsingHeaderState
 import com.pedronveloso.a11ybutton.ui.MainScreenState
 import com.pedronveloso.a11ybutton.ui.MainViewModel
 import com.pedronveloso.a11ybutton.ui.SetupReadiness
 import com.pedronveloso.a11ybutton.ui.ShortcutPickerList
+import com.pedronveloso.a11ybutton.ui.collapsing
 import com.pedronveloso.a11ybutton.ui.preview.ThemePreviews
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
 import com.pedronveloso.a11ybutton.ui.theme.a11YButtonStatusPalette
@@ -198,6 +208,8 @@ fun MainRoute(
   val lifecycleOwner = LocalLifecycleOwner.current
   val context = LocalContext.current
   var destination by rememberSaveable { mutableStateOf(MainDestination.Home) }
+  // Where the FAQ's back navigation goes, since it is reachable from Home, Setup and Preferences.
+  var faqReturnTo by rememberSaveable { mutableStateOf(MainDestination.Home) }
   val canOpenDebugTools = BuildConfig.DEBUG
 
   DisposableEffect(lifecycleOwner, viewModel) {
@@ -235,7 +247,10 @@ fun MainRoute(
                 viewModel.refreshAvailableApps()
                 destination = MainDestination.Picker
               },
-              onOpenFaq = { destination = MainDestination.Faq },
+              onOpenFaq = {
+                faqReturnTo = MainDestination.Home
+                destination = MainDestination.Faq
+              },
               onDismissServiceMessage = viewModel::clearServiceMessage,
               onEnableNotifications = viewModel::enableNotifications,
               modifier = Modifier.padding(innerPadding),
@@ -267,7 +282,10 @@ fun MainRoute(
             onOpenAccessibilitySettings = {
               SystemSettingsNavigator.openAccessibilitySettings(context)
             },
-            onOpenFaq = { destination = MainDestination.Faq },
+            onOpenFaq = {
+              faqReturnTo = MainDestination.Home
+              destination = MainDestination.Faq
+            },
             onEnableNotifications = viewModel::enableNotifications,
             modifier = Modifier.padding(innerPadding),
         )
@@ -303,14 +321,14 @@ fun MainRoute(
     }
 
     MainDestination.Faq -> {
-      BackHandler { destination = MainDestination.Home }
+      BackHandler { destination = faqReturnTo }
       Scaffold(
           modifier = modifier.fillMaxSize(),
           topBar = {
             AppTopBar(
                 title = stringResource(id = R.string.faq_title),
                 showBack = true,
-                onBack = { destination = MainDestination.Home },
+                onBack = { destination = faqReturnTo },
                 showDebugAction = canOpenDebugTools,
                 onDebugClick = { destination = MainDestination.DebugMenu },
             )
@@ -395,6 +413,10 @@ fun MainRoute(
         PreferencesScreen(
             themeMode = themeMode,
             onThemeModeChanged = viewModel::setThemeMode,
+            onOpenFaq = {
+              faqReturnTo = MainDestination.Preferences
+              destination = MainDestination.Faq
+            },
             modifier = Modifier.padding(innerPadding),
         )
       }
@@ -1065,6 +1087,14 @@ private fun FaqScreen(
         question = stringResource(id = R.string.faq_question_background),
         answer = stringResource(id = R.string.main_troubleshooting_background),
     )
+    FaqEntry(
+        question = stringResource(id = R.string.faq_question_shortcut_option),
+        answer = stringResource(id = R.string.faq_answer_shortcut_option),
+    )
+    FaqEntry(
+        question = stringResource(id = R.string.faq_question_shortcut_missing),
+        answer = stringResource(id = R.string.faq_answer_shortcut_missing),
+    )
   }
 }
 
@@ -1073,6 +1103,7 @@ private fun FaqScreen(
 private fun PreferencesScreen(
     themeMode: ThemeMode,
     onThemeModeChanged: (ThemeMode) -> Unit,
+    onOpenFaq: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   val uriHandler = LocalUriHandler.current
@@ -1100,6 +1131,14 @@ private fun PreferencesScreen(
               },
           )
         }
+      }
+    }
+    SectionCard(title = stringResource(id = R.string.home_support_title)) {
+      OutlinedButton(
+          onClick = onOpenFaq,
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(text = stringResource(id = R.string.home_open_faq))
       }
     }
     SectionCard(title = stringResource(id = R.string.settings_about_title)) {
@@ -1166,14 +1205,40 @@ private fun FaqEntry(
     answer: String,
     modifier: Modifier = Modifier,
 ) {
-  SectionCard(
-      title = question,
-      modifier = modifier,
-  ) {
-    Text(
-        text = answer,
-        style = MaterialTheme.typography.bodyMedium,
-    )
+  var expanded by rememberSaveable(question) { mutableStateOf(false) }
+  val stateDescription =
+      stringResource(
+          id = if (expanded) R.string.faq_state_expanded else R.string.faq_state_collapsed,
+      )
+  Card(modifier = modifier.fillMaxWidth()) {
+    Column {
+      Row(
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
+          verticalAlignment = Alignment.CenterVertically,
+          modifier =
+              Modifier.fillMaxWidth()
+                  .clickable(role = Role.Button) { expanded = !expanded }
+                  .semantics { this.stateDescription = stateDescription }
+                  .padding(16.dp),
+      ) {
+        Text(
+            text = question,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            contentDescription = null,
+        )
+      }
+      AnimatedVisibility(visible = expanded) {
+        Text(
+            text = answer,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        )
+      }
+    }
   }
 }
 
@@ -1224,6 +1289,9 @@ private fun AppPickerScreen(
         }
       }
   LaunchedEffect(mode) { if (mode == PickerMode.Shortcuts) onShortcutsRequested() }
+  val headerState = remember { CollapsingHeaderState() }
+  // Switching modes or showing an error must never leave the header hidden.
+  LaunchedEffect(mode, createFailed) { headerState.expand() }
   val filteredShortcuts = remember(shortcuts, query) { shortcuts.groups.filterByQuery(query) }
   val filteredApps =
       remember(apps, query) {
@@ -1247,38 +1315,36 @@ private fun AppPickerScreen(
       },
   ) { innerPadding ->
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
+        modifier =
+            Modifier.fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+                .nestedScroll(headerState.nestedScrollConnection),
     ) {
-      SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        PickerMode.entries.forEachIndexed { index, option ->
-          SegmentedButton(
-              selected = mode == option,
-              onClick = {
-                mode = option
-                createFailed = false
-              },
-              shape = SegmentedButtonDefaults.itemShape(index, PickerMode.entries.size),
-              label = { Text(text = stringResource(id = option.labelRes)) },
+      Column(
+          verticalArrangement = Arrangement.spacedBy(12.dp),
+          modifier = Modifier.collapsing(headerState).padding(bottom = 12.dp),
+      ) {
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+          PickerMode.entries.forEachIndexed { index, option ->
+            SegmentedButton(
+                selected = mode == option,
+                onClick = {
+                  mode = option
+                  createFailed = false
+                },
+                shape = SegmentedButtonDefaults.itemShape(index, PickerMode.entries.size),
+                label = { Text(text = stringResource(id = option.labelRes)) },
+            )
+          }
+        }
+        if (createFailed) {
+          Text(
+              text = stringResource(id = R.string.picker_shortcut_create_failed),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.error,
           )
         }
-      }
-      Text(
-          text = stringResource(id = R.string.picker_mode_note),
-          style = MaterialTheme.typography.bodySmall,
-      )
-      if (mode == PickerMode.Shortcuts) {
-        Text(
-            text = stringResource(id = R.string.picker_shortcuts_limit_note),
-            style = MaterialTheme.typography.bodySmall,
-        )
-      }
-      if (createFailed) {
-        Text(
-            text = stringResource(id = R.string.picker_shortcut_create_failed),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-        )
       }
       OutlinedTextField(
           value = query,
@@ -1298,14 +1364,19 @@ private fun AppPickerScreen(
                     ),
             )
           },
+          trailingIcon = {
+            if (query.isNotEmpty()) {
+              IconButton(onClick = { query = "" }) {
+                Icon(
+                    imageVector = Icons.Filled.Clear,
+                    contentDescription = stringResource(id = R.string.picker_search_clear),
+                )
+              }
+            }
+          },
           keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
       )
-      OutlinedButton(
-          onClick = onBack,
-          modifier = Modifier.fillMaxWidth(),
-      ) {
-        Text(text = stringResource(id = R.string.picker_back))
-      }
+      Spacer(modifier = Modifier.height(12.dp))
 
       if (mode == PickerMode.Shortcuts) {
         ShortcutPickerList(
@@ -1389,9 +1460,11 @@ private fun AppPickerScreen(
                     label = app.label,
                     supportingText = app.packageName,
                     componentName = app.componentName,
+                    showDivider = false,
                 )
                 if (isSelected) {
                   Text(
+                      modifier = Modifier.padding(top = 8.dp),
                       text = stringResource(id = R.string.picker_selected_badge),
                       style = MaterialTheme.typography.labelLarge,
                       color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -1598,6 +1671,7 @@ private fun RowWithIcon(
     modifier: Modifier = Modifier,
     componentName: String? = null,
     packageName: String? = null,
+    showDivider: Boolean = true,
 ) {
   Column(
       verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -1631,7 +1705,9 @@ private fun RowWithIcon(
         )
       }
     }
-    HorizontalDivider()
+    if (showDivider) {
+      HorizontalDivider()
+    }
   }
 }
 
@@ -1968,5 +2044,11 @@ private fun AppPickerPreview() {
 @ThemePreviews
 @Composable
 private fun PreferencesScreenPreview() {
-  A11YButtonTheme { PreferencesScreen(themeMode = ThemeMode.SYSTEM, onThemeModeChanged = {}) }
+  A11YButtonTheme {
+    PreferencesScreen(
+        themeMode = ThemeMode.SYSTEM,
+        onThemeModeChanged = {},
+        onOpenFaq = {},
+    )
+  }
 }

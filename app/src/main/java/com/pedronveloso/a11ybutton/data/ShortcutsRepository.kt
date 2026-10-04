@@ -112,7 +112,7 @@ class ShortcutsRepository(
       }
 
   private fun ResolveInfo.toCreatorPair(): Pair<InstalledApp, ShortcutEntry>? {
-    val info = activityInfo ?: return null
+    val info = activityInfo?.takeIf { it.exported && it.permission == null } ?: return null
     val component = ComponentName(info.packageName, info.name).flattenToString()
     val appLabel = info.applicationInfo.loadLabel(packageManager).toString()
     val label = loadLabel(packageManager).toString().ifBlank { appLabel }
@@ -145,7 +145,7 @@ class ShortcutsRepository(
             intentUri = shortcutIntent.toUri(Intent.URI_INTENT_SCHEME),
             expectedPackage = packageName,
         ) ?: return null
-    if (sanitized.resolveActivity(packageManager) == null) return null
+    if (!LaunchIntentFactory.isLaunchable(packageManager, sanitized)) return null
     val label =
         result.getStringExtra(Intent.EXTRA_SHORTCUT_NAME).orEmpty().ifBlank { fallbackLabel }
     return ShortcutTarget(
@@ -176,8 +176,8 @@ class ShortcutsRepository(
               expectedPackage = packageName,
           ) ?: return null
       if (intent.component == null && intent.`package` == null) return null
-      // Not exported (or otherwise unreachable from here) means the launch would fail later.
-      if (sanitized.resolveActivity(packageManager) == null) return null
+      // Hide shortcuts whose target we cannot start (not exported, or permission protected).
+      if (!LaunchIntentFactory.isLaunchable(packageManager, sanitized)) return null
       return ShortcutEntry.Ready(
           ShortcutTarget(
               packageName = packageName,
