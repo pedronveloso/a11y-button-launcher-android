@@ -66,13 +66,14 @@ class ShortcutsRepository(
         emptyList()
       }
 
-  private fun parseStaticShortcuts(
+  internal fun parseStaticShortcuts(
       parser: XmlResourceParser,
       resources: Resources,
       packageName: String,
   ): List<ShortcutEntry> {
     val result = mutableListOf<ShortcutEntry>()
     var draft: ShortcutDraft? = null
+    var insideIntent = false
     var event = parser.eventType
     while (event != XmlPullParser.END_DOCUMENT) {
       when (event) {
@@ -87,17 +88,31 @@ class ShortcutsRepository(
                               parser.resolveString(resources, "shortcutShortLabel")
                                   ?: parser.resolveString(resources, "shortcutLongLabel"),
                       )
-              "intent" -> draft?.let { it.intent = parser.readIntent() }
+              "intent" ->
+                  draft?.let {
+                    // Several intents describe a back stack we cannot launch, see toEntry.
+                    it.intentCount++
+                    it.intent = parser.readIntent()
+                    insideIntent = true
+                  }
+              // Only categories inside <intent> belong to the launch intent. A <categories>
+              // directly
+              // under <shortcut> is shortcut metadata.
               "categories" ->
-                  parser.getAttributeValue(ANDROID_NS, "name")?.let { name ->
-                    draft?.intent?.addCategory(name)
+                  if (insideIntent) {
+                    parser.getAttributeValue(ANDROID_NS, "name")?.let { name ->
+                      draft?.intent?.addCategory(name)
+                    }
                   }
               "extra" -> draft?.hasExtras = true
             }
         XmlPullParser.END_TAG ->
-            if (parser.name == "shortcut") {
-              draft?.toEntry(packageName)?.let(result::add)
-              draft = null
+            when (parser.name) {
+              "intent" -> insideIntent = false
+              "shortcut" -> {
+                draft?.toEntry(packageName)?.let(result::add)
+                draft = null
+              }
             }
       }
       event = parser.next()
@@ -140,6 +155,7 @@ class ShortcutsRepository(
     val shortcutIntent =
         IntentCompat.getParcelableExtra(result, Intent.EXTRA_SHORTCUT_INTENT, Intent::class.java)
             ?: return null
+    if (!LaunchIntentFactory.hasOnlyUriSafeExtras(shortcutIntent)) return null
     val sanitized =
         LaunchIntentFactory.createShortcutIntent(
             intentUri = shortcutIntent.toUri(Intent.URI_INTENT_SCHEME),
@@ -162,6 +178,7 @@ class ShortcutsRepository(
       val label: String?,
   ) {
     var intent: Intent? = null
+    var intentCount = 0
     var hasExtras = false
 
     fun toEntry(packageName: String): ShortcutEntry? {
@@ -170,6 +187,8 @@ class ShortcutsRepository(
       // Extras are skipped: the XML does not say whether a value is a string, int or boolean, and
       // launching with a wrongly typed extra would misbehave quietly.
       if (!enabled || hasExtras) return null
+      // We launch a single activity, so a shortcut declaring a back stack would lose its history.
+      if (intentCount > 1) return null
       val sanitized =
           LaunchIntentFactory.createShortcutIntent(
               intentUri = intent.toUri(Intent.URI_INTENT_SCHEME),
@@ -204,7 +223,11 @@ class ShortcutsRepository(
 
     fun XmlResourceParser.readIntent(): Intent {
       val intent = Intent(getAttributeValue(ANDROID_NS, "action"))
-      getAttributeValue(ANDROID_NS, "data")?.let { intent.data = it.toUri() }
+      // setData and setType each clear the other, so they must be set together.
+      intent.setDataAndType(
+          getAttributeValue(ANDROID_NS, "data")?.toUri(),
+          getAttributeValue(ANDROID_NS, "mimeType"),
+      )
       val targetPackage = getAttributeValue(ANDROID_NS, "targetPackage")
       val targetClass = getAttributeValue(ANDROID_NS, "targetClass")
       if (targetPackage != null && targetClass != null) {

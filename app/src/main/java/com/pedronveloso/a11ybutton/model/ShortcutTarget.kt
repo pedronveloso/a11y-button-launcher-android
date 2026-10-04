@@ -11,4 +11,10 @@ data class ShortcutTarget(
     val label: String,
     /** [android.content.Intent.toUri] with `URI_INTENT_SCHEME`. */
     val intentUri: String,
-)
+) {
+  /** Same shortcut regardless of label, which can change with the device language. */
+  fun isSameShortcutAs(other: ShortcutTarget): Boolean =
+      packageName == other.packageName &&
+          shortcutId == other.shortcutId &&
+          intentUri == other.intentUri
+}

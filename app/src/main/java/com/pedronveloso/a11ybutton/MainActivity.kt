@@ -117,7 +117,6 @@ import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
-import com.pedronveloso.a11ybutton.model.ShortcutEntry
 import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.model.isConfigured
@@ -365,8 +364,8 @@ fun MainRoute(
             viewModel.selectShortcut(shortcut)
             destination = MainDestination.Home
           },
-          onCreatedShortcut = { creator, appLabel, result ->
-            val saved = viewModel.selectCreatedShortcut(creator, appLabel, result)
+          onCreatedShortcut = { packageName, appLabel, result ->
+            val saved = viewModel.selectCreatedShortcut(packageName, appLabel, result)
             if (saved) destination = MainDestination.Home
             saved
           },
@@ -1267,7 +1266,7 @@ private fun AppPickerScreen(
     onAppSelected: (InstalledApp) -> Unit,
     onShortcutsRequested: () -> Unit,
     onShortcutSelected: (ShortcutTarget) -> Unit,
-    onCreatedShortcut: suspend (ShortcutEntry.Creator, String, Intent?) -> Boolean,
+    onCreatedShortcut: suspend (packageName: String, appLabel: String, result: Intent?) -> Boolean,
     showDebugAction: Boolean,
     onDebugClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1275,17 +1274,19 @@ private fun AppPickerScreen(
   var query by rememberSaveable { mutableStateOf("") }
   var mode by rememberSaveable { mutableStateOf(initialMode) }
   var createFailed by remember { mutableStateOf(false) }
-  var pendingCreator by remember { mutableStateOf<Pair<ShortcutEntry.Creator, String>?>(null) }
+  // Saved, because the other app's create screen can outlive this activity (rotation, low memory).
+  var pendingCreatorPackage by rememberSaveable { mutableStateOf<String?>(null) }
+  var pendingCreatorAppLabel by rememberSaveable { mutableStateOf<String?>(null) }
   val scope = rememberCoroutineScope()
   val createShortcutLauncher =
       rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result
         ->
-        val pending = pendingCreator ?: return@rememberLauncherForActivityResult
-        pendingCreator = null
+        val packageName = pendingCreatorPackage ?: return@rememberLauncherForActivityResult
+        val appLabel = pendingCreatorAppLabel.orEmpty()
+        pendingCreatorPackage = null
+        pendingCreatorAppLabel = null
         if (result.resultCode == Activity.RESULT_OK) {
-          scope.launch {
-            createFailed = !onCreatedShortcut(pending.first, pending.second, result.data)
-          }
+          scope.launch { createFailed = !onCreatedShortcut(packageName, appLabel, result.data) }
         }
       }
   LaunchedEffect(mode) { if (mode == PickerMode.Shortcuts) onShortcutsRequested() }
@@ -1385,17 +1386,20 @@ private fun AppPickerScreen(
             onShortcutSelected = onShortcutSelected,
             onCreateShortcut = { creator, appLabel ->
               createFailed = false
-              pendingCreator = creator to appLabel
+              pendingCreatorPackage = creator.packageName
+              pendingCreatorAppLabel = appLabel
               try {
                 createShortcutLauncher.launch(
                     Intent(Intent.ACTION_CREATE_SHORTCUT)
                         .setComponent(ComponentName.unflattenFromString(creator.componentName)),
                 )
               } catch (exception: ActivityNotFoundException) {
-                pendingCreator = null
+                pendingCreatorPackage = null
+                pendingCreatorAppLabel = null
                 createFailed = true
               } catch (exception: SecurityException) {
-                pendingCreator = null
+                pendingCreatorPackage = null
+                pendingCreatorAppLabel = null
                 createFailed = true
               }
             },

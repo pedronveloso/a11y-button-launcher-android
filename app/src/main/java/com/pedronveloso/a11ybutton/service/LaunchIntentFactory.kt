@@ -50,6 +50,9 @@ object LaunchIntentFactory {
           Timber.w(exception, "Cannot parse saved shortcut intent")
           return null
         }
+    // Must happen before setPackage below, which throws while a selector is set.
+    intent.selector = null
+    intent.sourceBounds = null
     val targetPackage = intent.component?.packageName ?: intent.`package`
     if (targetPackage == null) {
       intent.setPackage(expectedPackage)
@@ -61,8 +64,6 @@ object LaunchIntentFactory {
       )
       return null
     }
-    intent.selector = null
-    intent.sourceBounds = null
     intent.flags = (intent.flags and GRANT_URI_FLAGS.inv()) or SHORTCUT_FLAGS
     return intent
   }
@@ -74,6 +75,35 @@ object LaunchIntentFactory {
           Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
 
   private const val SHORTCUT_FLAGS = Intent.FLAG_ACTIVITY_NEW_TASK
+
+  /**
+   * Whether every extra on [intent] survives [Intent.toUri], which stores only scalar values.
+   * Anything else (Bundle, Parcelable, arrays) would be silently dropped when the intent is saved.
+   */
+  @Suppress("DEPRECATION")
+  fun hasOnlyUriSafeExtras(intent: Intent): Boolean {
+    // Reading a foreign app's extras can throw if it bundled a class we do not have.
+    return try {
+      val extras = intent.extras ?: return true
+      extras.keySet().all { key ->
+        when (extras.get(key)) {
+          is String,
+          is Boolean,
+          is Byte,
+          is Char,
+          is Double,
+          is Float,
+          is Int,
+          is Long,
+          is Short -> true
+          else -> false
+        }
+      }
+    } catch (exception: RuntimeException) {
+      Timber.w(exception, "Could not read shortcut extras")
+      false
+    }
+  }
 
   /**
    * Whether this app is allowed to start [intent]. Explicit intents resolve even when the target is

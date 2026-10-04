@@ -90,7 +90,7 @@ internal fun ShortcutPickerList(
                   ShortcutRow(
                       title = entry.label,
                       supportingText = null,
-                      isSelected = selectedShortcut.matches(entry.target),
+                      isSelected = selectedShortcut?.isSameShortcutAs(entry.target) == true,
                       onClick = { onShortcutSelected(entry.target) },
                   )
               is ShortcutEntry.Creator ->
@@ -156,11 +156,8 @@ private fun ShortcutRow(
   }
 }
 
-private fun ShortcutTarget?.matches(other: ShortcutTarget): Boolean =
-    this != null && packageName == other.packageName && intentUri == other.intentUri
-
 private fun ShortcutEntry.stableKey(): String =
     when (this) {
-      is ShortcutEntry.Ready -> target.intentUri
+      is ShortcutEntry.Ready -> "${target.shortcutId.orEmpty()}|${target.intentUri}"
       is ShortcutEntry.Creator -> componentName
     }

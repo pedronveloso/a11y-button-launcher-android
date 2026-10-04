@@ -25,6 +25,18 @@ Add fast logic tests to `app/src/test/java/...` and Android-dependent tests to `
 ## UX Principles
 Never hide key screens or options behind a "completion" state. Setup, troubleshooting/FAQ, the picker, and preferences must stay reachable in every state, including when the app believes it is fully configured, because the app can think everything is fine while the user is the one seeing it fail. Completion may change emphasis (tone, ordering, button style, wording), never availability. Add or update a UI test when you touch an entry point like this. When adding an option or mode (for example choosing an app versus an app shortcut), update the copy at its entry point so users can tell the option exists.
 
+## Android Pitfalls
+Lessons from PR reviews, so they are not repeated:
+- Explicit intents resolve even when the target is not exported. Check `exported` and `permission` (see `LaunchIntentFactory.isLaunchable`) before offering or launching another app's component.
+- Treat intents from other apps as untrusted: clear the selector, strip URI grant flags, and pin the package. Clear the selector before `setPackage`, which throws while one is set.
+- `Intent.toUri` keeps only scalar extras and `setData` and `setType` clear each other. Reject what would not survive saving, and use `setDataAndType`.
+- Skip what cannot be reproduced faithfully (static shortcuts with several intents or typed extras) instead of approximating it.
+- Lazy list keys and selection checks must use the same full identity, never a field that can repeat.
+- State that must outlive an activity recreation, such as a pending activity-result request, belongs in `rememberSaveable`, not `remember`.
+- Instrumented tests that tap or assert on lower parts of a screen must `performScrollTo()` first, since screens grow taller than the test device.
+- When a review comment cites framework behavior, check it in the SDK sources under `~/Library/Android/sdk/sources` before acting. Automated reviewers are sometimes only half right.
+- `connectedDebugAndroidTest` uninstalls the app and wipes its data on the device. To keep a configured phone intact, `adb install -r -t` the APKs and run `adb shell am instrument -w` instead.
+
 ## Commit & Pull Request Guidelines
 Current history uses short, imperative commit subjects such as `Initial project setup with CI tooling`. Keep commits focused and under about 72 characters when practical. Pull requests should include a concise summary, linked issue if applicable, test notes, and screenshots or recordings for UI changes. Call out any accessibility impact explicitly.
 

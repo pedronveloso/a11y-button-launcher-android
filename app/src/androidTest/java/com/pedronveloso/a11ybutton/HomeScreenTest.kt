@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
@@ -62,7 +63,7 @@ class HomeScreenTest {
     composeTestRule.onNodeWithText("Opens an app").assertIsDisplayed()
     composeTestRule.onNodeWithText("Reader").assertIsDisplayed()
     composeTestRule.onNodeWithText("com.example.reader").assertIsDisplayed()
-    composeTestRule.onNodeWithText("Open FAQ").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Open FAQ").performScrollTo().assertIsDisplayed()
   }
 
   @Test
@@ -132,7 +133,10 @@ class HomeScreenTest {
       }
     }
 
-    composeTestRule.onNodeWithTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG)
+        .performScrollTo()
+        .assertIsDisplayed()
     composeTestRule.onNodeWithText("Setup & troubleshooting").performClick()
 
     composeTestRule.runOnIdle { assertTrue(setupOpened) }
@@ -163,8 +167,11 @@ class HomeScreenTest {
       }
     }
 
-    composeTestRule.onNodeWithTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG).performClick()
     composeTestRule.onNodeWithText("Dismiss").performClick()
+    composeTestRule
+        .onNodeWithTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG)
+        .performScrollTo()
+        .performClick()
 
     composeTestRule.runOnIdle {
       assertTrue(setupOpened)

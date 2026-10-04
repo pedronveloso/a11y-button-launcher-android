@@ -27,7 +27,6 @@ import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
-import com.pedronveloso.a11ybutton.model.ShortcutEntry
 import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
@@ -285,14 +284,14 @@ class MainViewModel(
 
   /** Saves the result of an app's create-shortcut screen; returns false if it was unusable. */
   suspend fun selectCreatedShortcut(
-      creator: ShortcutEntry.Creator,
+      packageName: String,
       appLabel: String,
       result: Intent?,
   ): Boolean {
     val target =
         withContext(Dispatchers.IO) {
           shortcutsRepository.shortcutFromCreateResult(
-              packageName = creator.packageName,
+              packageName = packageName,
               fallbackLabel = appLabel,
               result = result,
           )
