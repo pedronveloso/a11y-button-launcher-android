@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="test_shortcut_multi">Multi</string>
+    <string name="test_shortcut_categories">Categories</string>
+    <string name="test_shortcut_typed">Typed</string>
+    <string name="test_shortcut_plain">Plain</string>
+</resources>

@@ -29,7 +29,7 @@ The main app module lives in `app/`. UI and screen state are Compose-driven, app
 1. Open the app.
 2. Read and accept the disclosure.
 3. Open Accessibility settings and enable `A11Y Button Shortcut Service`.
-4. Choose one launchable app from the picker.
+4. Choose what the button opens: one launchable app, or one app shortcut (for example, composing a new message).
 5. Use the system Accessibility button or shortcut to launch the selected app.
 
 ## Notes

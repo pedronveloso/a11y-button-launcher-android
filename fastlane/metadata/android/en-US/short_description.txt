@@ -1,1 +1,1 @@
-Assign one app to the Android accessibility button or shortcut
+Assign one app or app shortcut to the Android accessibility button

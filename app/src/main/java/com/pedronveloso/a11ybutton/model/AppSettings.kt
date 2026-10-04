@@ -7,6 +7,7 @@ package com.pedronveloso.a11ybutton.model
 data class AppSettings(
     val selectedPackageName: String? = null,
     val selectedComponentName: String? = null,
+    val selectedShortcut: ShortcutTarget? = null,
     val disclosureAccepted: Boolean = false,
     val xiaomiRecentsLockConfirmed: Boolean = false,
     val notificationPreference: NotificationPreference = NotificationPreference.Disabled,

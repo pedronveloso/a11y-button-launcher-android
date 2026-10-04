@@ -10,10 +10,12 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import com.pedronveloso.a11ybutton.ui.MainScreenState
 import com.pedronveloso.a11ybutton.ui.SetupReadiness
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
@@ -57,10 +59,87 @@ class HomeScreenTest {
     }
 
     composeTestRule.onNodeWithText("Shortcut ready").assertIsDisplayed()
-    composeTestRule.onNodeWithText("Change App").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Change what opens").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Opens an app").assertIsDisplayed()
     composeTestRule.onNodeWithText("Reader").assertIsDisplayed()
     composeTestRule.onNodeWithText("com.example.reader").assertIsDisplayed()
-    composeTestRule.onNodeWithText("Open FAQ").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Open FAQ").performScrollTo().assertIsDisplayed()
+  }
+
+  @Test
+  fun homeScreen_labelsSelectedTargetAsAppShortcut() {
+    composeTestRule.setContent {
+      A11YButtonTheme {
+        HomeScreen(
+            screenState =
+                MainScreenState(
+                    serviceEnabled = true,
+                    disclosureAccepted = true,
+                    selectedAppState =
+                        SelectedAppState.ValidShortcut(
+                            shortcut =
+                                ShortcutTarget(
+                                    packageName = "com.example.mail",
+                                    shortcutId = "compose",
+                                    label = "Compose",
+                                    intentUri = "intent:#Intent;package=com.example.mail;end",
+                                ),
+                        ),
+                    readiness = SetupReadiness.Ready,
+                ),
+            onOpenSetup = {},
+            onChooseApp = {},
+            onOpenFaq = {},
+            onDismissServiceMessage = {},
+            onEnableNotifications = {},
+        )
+      }
+    }
+
+    composeTestRule.onNodeWithText("Opens an app shortcut").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Compose").assertIsDisplayed()
+    composeTestRule.onNodeWithText("com.example.mail").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Change what opens").assertIsDisplayed()
+  }
+
+  @Test
+  fun homeScreen_keepsSetupEntryVisible_whenReady() {
+    var setupOpened = false
+
+    composeTestRule.setContent {
+      A11YButtonTheme {
+        HomeScreen(
+            screenState =
+                MainScreenState(
+                    serviceEnabled = true,
+                    disclosureAccepted = true,
+                    selectedAppState =
+                        SelectedAppState.Valid(
+                            app =
+                                InstalledApp(
+                                    packageName = "com.example.reader",
+                                    componentName = "com.example.reader/.HomeActivity",
+                                    label = "Reader",
+                                ),
+                        ),
+                    readiness = SetupReadiness.Ready,
+                ),
+            onOpenSetup = { setupOpened = true },
+            onChooseApp = {},
+            onOpenFaq = {},
+            onDismissServiceMessage = {},
+            onEnableNotifications = {},
+        )
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG)
+        .performScrollTo()
+        .assertIsDisplayed()
+    composeTestRule.onNodeWithText("Setup & troubleshooting").performClick()
+
+    composeTestRule.runOnIdle { assertTrue(setupOpened) }
   }
 
   @Test
@@ -88,8 +167,11 @@ class HomeScreenTest {
       }
     }
 
-    composeTestRule.onNodeWithTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG).performClick()
     composeTestRule.onNodeWithText("Dismiss").performClick()
+    composeTestRule
+        .onNodeWithTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG)
+        .performScrollTo()
+        .performClick()
 
     composeTestRule.runOnIdle {
       assertTrue(setupOpened)
@@ -127,7 +209,7 @@ class HomeScreenTest {
     composeTestRule.onNodeWithText("Saved selection needs attention").assertIsDisplayed()
     composeTestRule.onNodeWithText("The selected app is no longer installed.").assertIsDisplayed()
     composeTestRule.onNodeWithText("Package: com.example.reader").assertIsDisplayed()
-    composeTestRule.onNodeWithText("Change App").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Change what opens").assertIsDisplayed()
   }
 
   @Test
@@ -153,7 +235,7 @@ class HomeScreenTest {
       }
     }
 
-    composeTestRule.onNodeWithText("Choose App").performClick()
+    composeTestRule.onNodeWithText("Choose what to open").performClick()
 
     composeTestRule.runOnIdle { assertEquals(1, chooseAppCount) }
   }

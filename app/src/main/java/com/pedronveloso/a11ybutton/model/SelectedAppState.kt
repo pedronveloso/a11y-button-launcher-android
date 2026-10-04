@@ -9,6 +9,7 @@ enum class InvalidSelectionReason {
   DisabledApp,
   MissingComponent,
   NotLaunchable,
+  ShortcutNotResolvable,
 }
 
 sealed interface SelectedAppState {
@@ -18,9 +19,17 @@ sealed interface SelectedAppState {
       val app: InstalledApp,
   ) : SelectedAppState
 
+  data class ValidShortcut(
+      val shortcut: ShortcutTarget,
+  ) : SelectedAppState
+
   data class Invalid(
       val packageName: String?,
       val componentName: String?,
       val reason: InvalidSelectionReason,
   ) : SelectedAppState
 }
+
+/** True when the button has a working target, whether an app or an app shortcut. */
+val SelectedAppState.isConfigured: Boolean
+  get() = this is SelectedAppState.Valid || this is SelectedAppState.ValidShortcut

@@ -16,6 +16,7 @@ import com.pedronveloso.a11ybutton.R
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
 import com.pedronveloso.a11ybutton.data.SettingsRepository
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -115,16 +116,22 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
             launchTargetApp(selectionState.app.componentName)
           }
 
+          is SelectedAppState.ValidShortcut -> {
+            Timber.i(
+                "Attempting to launch selected shortcut package=%s id=%s",
+                selectionState.shortcut.packageName,
+                selectionState.shortcut.shortcutId,
+            )
+            launchShortcut(selectionState.shortcut)
+          }
+
           is SelectedAppState.Invalid -> {
             Timber.w(
                 "Saved selection invalid; clearing package=%s component=%s",
                 selectionState.packageName,
                 selectionState.componentName,
             )
-            settingsRepository.updateSelection(
-                packageName = null,
-                componentName = null,
-            )
+            settingsRepository.clearSelection()
             openHostApp(
                 message = getString(R.string.service_message_invalid_selection),
             )
@@ -163,6 +170,27 @@ class ShortcutLaunchAccessibilityService : AccessibilityService() {
     } catch (exception: SecurityException) {
       Timber.e(exception, "Security exception when launching component=%s", componentName)
       openHostApp(message = getString(R.string.service_message_launch_failed))
+    }
+  }
+
+  private fun launchShortcut(shortcut: ShortcutTarget) {
+    val launchIntent =
+        LaunchIntentFactory.createShortcutIntent(shortcut.intentUri, shortcut.packageName)
+    if (launchIntent == null) {
+      Timber.e("Failed to build shortcut intent for package=%s", shortcut.packageName)
+      openHostApp(message = getString(R.string.service_message_launch_failed_shortcut))
+      return
+    }
+
+    try {
+      startActivity(launchIntent)
+      Timber.i("Shortcut launch started for package=%s", shortcut.packageName)
+    } catch (exception: ActivityNotFoundException) {
+      Timber.e(exception, "Shortcut activity not found for package=%s", shortcut.packageName)
+      openHostApp(message = getString(R.string.service_message_launch_failed_shortcut))
+    } catch (exception: SecurityException) {
+      Timber.e(exception, "Security exception launching shortcut for %s", shortcut.packageName)
+      openHostApp(message = getString(R.string.service_message_launch_failed_shortcut))
     }
   }
 

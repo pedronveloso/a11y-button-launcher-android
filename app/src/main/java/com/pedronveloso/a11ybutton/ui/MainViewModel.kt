@@ -7,6 +7,7 @@ package com.pedronveloso.a11ybutton.ui
 import android.Manifest
 import android.app.Application
 import android.content.ComponentName
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
@@ -20,10 +21,13 @@ import com.pedronveloso.a11ybutton.SystemSettingsNavigator
 import com.pedronveloso.a11ybutton.data.AccessibilityStatusRepository
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
 import com.pedronveloso.a11ybutton.data.SettingsRepository
+import com.pedronveloso.a11ybutton.data.ShortcutsRepository
+import com.pedronveloso.a11ybutton.model.AppPickerShortcuts
 import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
 import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
@@ -48,15 +52,18 @@ class MainViewModel(
   private data class SelectionSettings(
       val packageName: String?,
       val componentName: String?,
+      val shortcut: ShortcutTarget?,
   )
 
   private val settingsRepository = SettingsRepository.fromContext(application)
   private val installedAppsRepository = InstalledAppsRepository(application)
+  private val shortcutsRepository = ShortcutsRepository(application, installedAppsRepository)
   private val serviceComponent =
       ComponentName(application, ShortcutLaunchAccessibilityService::class.java)
   private val serviceEnabled = MutableStateFlow(false)
   private val selectedAppState = MutableStateFlow<SelectedAppState>(SelectedAppState.None)
   private val availableApps = MutableStateFlow(AppPickerApps())
+  private val availableShortcuts = MutableStateFlow(AppPickerShortcuts())
   private val serviceMessage = MutableStateFlow<String?>(null)
   private val batteryOptimizationIgnored = MutableStateFlow(false)
   private val backgroundProtectionBrand =
@@ -116,6 +123,13 @@ class MainViewModel(
           initialValue = AppPickerApps(),
       )
 
+  val pickerShortcuts =
+      availableShortcuts.stateIn(
+          scope = viewModelScope,
+          started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+          initialValue = AppPickerShortcuts(),
+      )
+
   init {
     Timber.i("MainViewModel initialized")
     refreshServiceStatus()
@@ -126,6 +140,7 @@ class MainViewModel(
             SelectionSettings(
                 packageName = settings.selectedPackageName,
                 componentName = settings.selectedComponentName,
+                shortcut = settings.selectedShortcut,
             )
           }
           .distinctUntilChanged()
@@ -141,6 +156,7 @@ class MainViewModel(
                       AppSettings(
                           selectedPackageName = settings.packageName,
                           selectedComponentName = settings.componentName,
+                          selectedShortcut = settings.shortcut,
                       ),
                   )
                 }
@@ -180,6 +196,8 @@ class MainViewModel(
   fun refreshAvailableApps() {
     Timber.d("Refreshing available launchable apps")
     availableApps.value = AppPickerApps(isLoading = true)
+    // A fresh picker session should not show shortcuts from a previous app list.
+    availableShortcuts.value = AppPickerShortcuts()
     viewModelScope.launch {
       try {
         availableApps.value =
@@ -196,6 +214,36 @@ class MainViewModel(
       } catch (exception: Exception) {
         Timber.e(exception, "Failed to refresh available launchable apps")
         availableApps.value = AppPickerApps()
+      }
+    }
+  }
+
+  /** Loads shortcuts the first time the picker needs them; a no-op while loaded or loading. */
+  fun ensureShortcutsLoaded() {
+    val current = availableShortcuts.value
+    if (current.isLoading || current.groups.isNotEmpty()) return
+    refreshAvailableShortcuts()
+  }
+
+  private fun refreshAvailableShortcuts() {
+    Timber.d("Refreshing available app shortcuts")
+    availableShortcuts.value = AppPickerShortcuts(isLoading = true)
+    viewModelScope.launch {
+      try {
+        availableShortcuts.value =
+            withContext(Dispatchers.IO) {
+              AppPickerShortcuts(
+                  groups =
+                      shortcutsRepository.getShortcutGroups().filterNot {
+                        it.app.packageName == getApplication<Application>().packageName
+                      },
+              )
+            }
+      } catch (exception: CancellationException) {
+        throw exception
+      } catch (exception: Exception) {
+        Timber.e(exception, "Failed to refresh available shortcuts")
+        availableShortcuts.value = AppPickerShortcuts()
       }
     }
   }
@@ -223,6 +271,33 @@ class MainViewModel(
           componentName = app.componentName,
       )
     }
+  }
+
+  fun selectShortcut(shortcut: ShortcutTarget) {
+    Timber.i(
+        "Selected shortcut changed to package=%s id=%s",
+        shortcut.packageName,
+        shortcut.shortcutId,
+    )
+    viewModelScope.launch { settingsRepository.updateShortcutSelection(shortcut) }
+  }
+
+  /** Saves the result of an app's create-shortcut screen; returns false if it was unusable. */
+  suspend fun selectCreatedShortcut(
+      packageName: String,
+      appLabel: String,
+      result: Intent?,
+  ): Boolean {
+    val target =
+        withContext(Dispatchers.IO) {
+          shortcutsRepository.shortcutFromCreateResult(
+              packageName = packageName,
+              fallbackLabel = appLabel,
+              result = result,
+          )
+        } ?: return false
+    settingsRepository.updateShortcutSelection(target)
+    return true
   }
 
   fun refreshNotificationsEnabled() {

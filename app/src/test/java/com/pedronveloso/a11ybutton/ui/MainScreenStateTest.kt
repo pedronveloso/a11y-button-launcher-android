@@ -8,6 +8,7 @@ import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -72,6 +73,28 @@ class MainScreenStateTest {
                             packageName = "com.example.reader",
                             componentName = "com.example.reader/.HomeActivity",
                             label = "Reader",
+                        ),
+                ),
+            serviceMessage = null,
+        )
+
+    assertEquals(SetupReadiness.Ready, state.readiness)
+  }
+
+  @Test
+  fun deriveMainScreenState_isReady_whenOnlyAShortcutIsAssigned() {
+    val state =
+        deriveMainScreenState(
+            serviceEnabled = true,
+            disclosureAccepted = true,
+            selectedAppState =
+                SelectedAppState.ValidShortcut(
+                    shortcut =
+                        ShortcutTarget(
+                            packageName = "com.example.mail",
+                            shortcutId = "compose",
+                            label = "Compose",
+                            intentUri = "intent:#Intent;package=com.example.mail;end",
                         ),
                 ),
             serviceMessage = null,

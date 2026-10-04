@@ -6,6 +6,7 @@ package com.pedronveloso.a11ybutton.ui
 
 import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.model.isConfigured
 
 enum class SetupReadiness {
   NotSetUp,
@@ -37,7 +38,7 @@ fun deriveMainScreenState(
     serviceMessage: String? = null,
     notificationPreference: NotificationPreference = NotificationPreference.Disabled,
 ): MainScreenState {
-  val selectedAppConfigured = selectedAppState is SelectedAppState.Valid
+  val selectedAppConfigured = selectedAppState.isConfigured
   val requirements = buildList {
     add(serviceEnabled)
     add(disclosureAccepted)

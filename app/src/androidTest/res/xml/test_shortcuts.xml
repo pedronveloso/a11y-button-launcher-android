@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Declares a back stack, which we cannot launch faithfully. -->
+    <shortcut
+        android:shortcutId="multi"
+        android:shortcutShortLabel="@string/test_shortcut_multi">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.pedronveloso.a11ybutton.MainActivity"
+            android:targetPackage="com.pedronveloso.a11ybutton" />
+        <intent
+            android:action="android.intent.action.SEND"
+            android:targetClass="com.pedronveloso.a11ybutton.MainActivity"
+            android:targetPackage="com.pedronveloso.a11ybutton" />
+    </shortcut>
+
+    <!-- Only the categories inside the intent belong to the launch intent. -->
+    <shortcut
+        android:shortcutId="categories"
+        android:shortcutShortLabel="@string/test_shortcut_categories">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.pedronveloso.a11ybutton.MainActivity"
+            android:targetPackage="com.pedronveloso.a11ybutton">
+            <categories android:name="android.intent.category.DEFAULT" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="typed"
+        android:shortcutShortLabel="@string/test_shortcut_typed">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="content://com.example/item/1"
+            android:mimeType="vnd.example/item"
+            android:targetClass="com.pedronveloso.a11ybutton.MainActivity"
+            android:targetPackage="com.pedronveloso.a11ybutton" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="plain"
+        android:shortcutShortLabel="@string/test_shortcut_plain">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.pedronveloso.a11ybutton.MainActivity"
+            android:targetPackage="com.pedronveloso.a11ybutton" />
+    </shortcut>
+</shortcuts>
