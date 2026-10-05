@@ -89,7 +89,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
@@ -113,6 +112,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
 import com.pedronveloso.a11ybutton.data.filterByQuery
 import com.pedronveloso.a11ybutton.logging.LoggingController
+import com.pedronveloso.a11ybutton.logging.LoggingError
 import com.pedronveloso.a11ybutton.logging.LoggingState
 import com.pedronveloso.a11ybutton.model.AppPickerShortcuts
 import com.pedronveloso.a11ybutton.model.InstalledApp
@@ -1121,6 +1121,12 @@ private fun FaqScreen(
   }
 }
 
+private fun LoggingError.messageRes(): Int =
+    when (this) {
+      LoggingError.Enable -> R.string.settings_logging_error_enable
+      LoggingError.Cleanup -> R.string.settings_logging_error_cleanup
+    }
+
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun LogsUnavailable(
@@ -1132,7 +1138,7 @@ private fun LogsUnavailable(
       modifier = modifier.fillMaxSize(),
       topBar = {
         AppTopBar(
-            title = stringResource(id = R.string.settings_view_logs),
+            title = stringResource(id = R.string.logs_screen_title),
             showBack = true,
             onBack = onBack,
         )
@@ -1143,7 +1149,9 @@ private fun LogsUnavailable(
             stringResource(
                 id =
                     when {
-                      loggingState.error -> R.string.settings_logging_error
+                      loggingState.error != null -> loggingState.error.messageRes()
+                      // Logs is restored from rememberSaveable after process death, while the
+                      // startup reconcile is still running.
                       loggingState.transitioning -> R.string.logs_preparing
                       else -> R.string.logs_unavailable
                     }
@@ -1218,9 +1226,9 @@ internal fun PreferencesScreen(
         )
       }
 
-      if (loggingState.error) {
+      if (loggingState.error != null) {
         Text(
-            text = stringResource(id = R.string.settings_logging_error),
+            text = stringResource(id = loggingState.error.messageRes()),
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         )

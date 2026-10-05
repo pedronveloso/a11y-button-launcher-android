@@ -19,11 +19,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+enum class LoggingError {
+  /** Capture could not be turned on; nothing was left running. */
+  Enable,
+  /** Saved logs could not be cleared; cleanup is retried on the next launch. */
+  Cleanup,
+}
+
 data class LoggingState(
     val enabled: Boolean = false,
     val transitioning: Boolean = true,
-    val error: Boolean = false,
+    val error: LoggingError? = null,
 )
+
+private class CleanupFailure(cause: Throwable) : Exception(cause)
 
 /** Owns a single capture for the process; transitions outlive the activity. */
 class LoggingController(
@@ -50,9 +59,7 @@ class LoggingController(
           mutableState.value =
               LoggingState(enabled = settings.inAppLoggingEnabled, transitioning = false)
         } catch (failure: Exception) {
-          if (failure is CancellationException) throw failure
-          capture?.uninstall()
-          mutableState.value = LoggingState(transitioning = false, error = true)
+          fail(failure, disabling = false)
         }
       }
     }
@@ -76,17 +83,24 @@ class LoggingController(
             clearRetainedSessions()
           } else {
             if (repository.settings.first().loggingCleanupPending) clearRetainedSessions()
-            repository.setInAppLoggingEnabled(true)
+            // Install first so a failure never leaves "on" persisted while capture is off.
             ensureCapture().install()
+            repository.setInAppLoggingEnabled(true)
           }
           mutableState.value = LoggingState(enabled = enabled, transitioning = false)
         } catch (failure: Exception) {
-          if (failure is CancellationException) throw failure
-          capture?.uninstall()
-          mutableState.value = LoggingState(transitioning = false, error = true)
+          fail(failure, disabling = !enabled)
         }
       }
     }
+  }
+
+  private fun fail(failure: Exception, disabling: Boolean) {
+    if (failure is CancellationException) throw failure
+    capture?.uninstall()
+    val error =
+        if (disabling || failure is CleanupFailure) LoggingError.Cleanup else LoggingError.Enable
+    mutableState.value = LoggingState(transitioning = false, error = error)
   }
 
   private fun ensureCapture(): TimberLogCapture =
@@ -99,6 +113,15 @@ class LoggingController(
               .also { capture = it }
 
   private suspend fun clearRetainedSessions() {
+    try {
+      clearSessions()
+    } catch (failure: Exception) {
+      if (failure is CancellationException) throw failure
+      throw CleanupFailure(failure)
+    }
+  }
+
+  private suspend fun clearSessions() {
     val source = ensureCapture()
     source.uninstall()
     // sessions() awaits journal initialization, including buffered startup writes.

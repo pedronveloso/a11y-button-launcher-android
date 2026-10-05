@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.pedronveloso.a11ybutton.model.AppSettings
 import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.ShortcutTarget
+import com.pedronveloso.a11ybutton.model.ThemeMode
 import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -190,7 +191,7 @@ class SettingsRepositoryTest {
     repository.updateShortcutSelection(SHORTCUT)
     repository.setDisclosureAccepted(true)
     repository.enableNotifications()
-    repository.setThemeMode(com.pedronveloso.a11ybutton.model.ThemeMode.DARK)
+    repository.setThemeMode(ThemeMode.DARK)
     val before = repository.settings.first()
     repository.setInAppLoggingEnabled(true)
     val reopened = SettingsRepository(store, loggingDefault = false)

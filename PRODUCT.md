@@ -23,6 +23,7 @@ Android exposes an accessibility button and accessibility shortcut, but almost a
 - Launch the selected app or app shortcut when triggered.
 - Recover gracefully if the selected app is uninstalled or disabled, with clear guidance.
 - Show guidance when the service is disabled or interrupted, including device-specific background-protection tips for aggressive OEMs.
+- Optionally keep in-app logs for troubleshooting: off by default in release builds, stored only on the device, redacted, deleted when turned off, and shared only when the user chooses to.
 
 ## What it does not do
 
@@ -47,7 +48,7 @@ After setup the app should feel invisible: trigger → app opens. No intermediat
 
 ## Scope
 
-**Current:** one selected app or app shortcut, one trigger, local-only configuration, clear setup and recovery states.
+**Current:** one selected app or app shortcut, one trigger, local-only configuration, clear setup and recovery states, optional local in-app logs.
 
 **Possible future:** better per-Android-version onboarding, more OEM-specific guidance (Xiaomi, Samsung, etc.), improved copy for why Android disables accessibility services after updates, optional local config import/export.
 

@@ -6,13 +6,17 @@ package com.pedronveloso.a11ybutton
 
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pedronveloso.a11ybutton.data.SettingsRepository
 import com.pedronveloso.a11ybutton.logging.LoggingController
+import com.pedronveloso.a11ybutton.logging.LoggingError
 import com.pedronveloso.logviewer.TimberLogCapture
 import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -93,7 +97,7 @@ class LoggingControllerTest {
       controller.setEnabled(false)
       awaitSettled(controller)
       assertFalse(controller.state.value.enabled)
-      assertTrue(controller.state.value.error)
+      assertEquals(LoggingError.Cleanup, controller.state.value.error)
       assertFalse(repository.settings.first().inAppLoggingEnabled)
       assertTrue(repository.settings.first().loggingCleanupPending)
       assertFalse(source.health.value.installed!!)
@@ -101,6 +105,22 @@ class LoggingControllerTest {
       controller.setEnabled(true)
       awaitSettled(controller)
       assertFalse(controller.state.value.enabled)
+    }
+  }
+
+  @Test
+  fun enableFailure_keepsPersistedSettingOffAndReportsEnableError() = runBlocking {
+    val store = FailableStore()
+    withController(default = false, store = store) { controller, repository, _ ->
+      awaitSettled(controller)
+      store.failWrites = true
+      controller.setEnabled(true)
+      awaitSettled(controller)
+      store.failWrites = false
+      assertFalse(controller.state.value.enabled)
+      assertEquals(LoggingError.Enable, controller.state.value.error)
+      assertFalse(repository.settings.first().inAppLoggingEnabled)
+      assertFalse(requireNotNull(controller.capture).health.value.installed!!)
     }
   }
 
@@ -126,6 +146,7 @@ class LoggingControllerTest {
       default: Boolean,
       seedPrevious: Boolean = false,
       pendingCleanup: Boolean = false,
+      store: FailableStore = FailableStore(),
       test: suspend (LoggingController, SettingsRepository, Context) -> Unit,
   ) {
     val base = ApplicationProvider.getApplicationContext<Context>()
@@ -139,10 +160,13 @@ class LoggingControllerTest {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     val repository =
         SettingsRepository(
-            PreferenceDataStoreFactory.create(
-                scope = scope,
-                produceFile = { File(root, "settings.preferences_pb") },
-            ),
+            store.also {
+              it.delegate =
+                  PreferenceDataStoreFactory.create(
+                      scope = scope,
+                      produceFile = { File(root, "settings.preferences_pb") },
+                  )
+            },
             loggingDefault = default,
         )
     if (seedPrevious) {
@@ -160,6 +184,20 @@ class LoggingControllerTest {
       controller.capture?.uninstall()
       scope.cancel()
       root.deleteRecursively()
+    }
+  }
+
+  private class FailableStore : DataStore<Preferences> {
+    lateinit var delegate: DataStore<Preferences>
+    @Volatile var failWrites = false
+    override val data
+      get() = delegate.data
+
+    override suspend fun updateData(
+        transform: suspend (t: Preferences) -> Preferences
+    ): Preferences {
+      if (failWrites) throw IOException("write failed")
+      return delegate.updateData(transform)
     }
   }
 }

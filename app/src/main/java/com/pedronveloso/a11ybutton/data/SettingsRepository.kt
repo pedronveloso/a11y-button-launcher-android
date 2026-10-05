@@ -47,6 +47,7 @@ class SettingsRepository(
           .map { preferencesToAppSettings(it, loggingDefault) }
 
   suspend fun setInAppLoggingEnabled(enabled: Boolean) {
+    Timber.i("Updating in-app logging to %s", enabled)
     dataStore.edit { preferences ->
       preferences[IN_APP_LOGGING_ENABLED_KEY] = enabled
       if (!enabled) preferences[LOGGING_CLEANUP_PENDING_KEY] = true
@@ -54,6 +55,7 @@ class SettingsRepository(
   }
 
   internal suspend fun finishLoggingCleanup() {
+    Timber.i("Finished clearing retained logs")
     dataStore.edit { it.remove(LOGGING_CLEANUP_PENDING_KEY) }
   }
 

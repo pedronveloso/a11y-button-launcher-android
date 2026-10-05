@@ -15,6 +15,7 @@ Privacy and permissions:
 - No analytics, advertising, or crash reporting
 - No cloud sync and no network data collection
 - Settings are stored only on your device
+- Optional in-app logs for troubleshooting are off by default, stay on your device, have sensitive values redacted, are deleted when you turn them off, and are shared only if you choose to
 - The accessibility service is used only to respond to the accessibility button or shortcut
 
 The app is open source and built for people who want a simple, focused way to launch one app from the system accessibility trigger.
