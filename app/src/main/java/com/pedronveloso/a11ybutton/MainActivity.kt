@@ -64,6 +64,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -87,6 +88,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
@@ -109,9 +111,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
 import com.pedronveloso.a11ybutton.data.filterByQuery
-import com.pedronveloso.a11ybutton.logging.InMemoryLogStore
-import com.pedronveloso.a11ybutton.logging.LogEntries
-import com.pedronveloso.a11ybutton.logging.LogEntry
+import com.pedronveloso.a11ybutton.logging.LoggingState
 import com.pedronveloso.a11ybutton.model.AppPickerShortcuts
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
@@ -134,6 +134,7 @@ import com.pedronveloso.a11ybutton.ui.collapsing
 import com.pedronveloso.a11ybutton.ui.preview.ThemePreviews
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
 import com.pedronveloso.a11ybutton.ui.theme.a11YButtonStatusPalette
+import com.pedronveloso.logviewer.LogViewer
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -149,7 +150,7 @@ private enum class MainDestination {
   Faq,
   Picker,
   DebugMenu,
-  DebugLogs,
+  Logs,
   Preferences,
 }
 
@@ -202,13 +203,15 @@ fun MainRoute(
   val screenState by viewModel.screenState.collectAsStateWithLifecycle()
   val pickerApps by viewModel.pickerApps.collectAsStateWithLifecycle()
   val pickerShortcuts by viewModel.pickerShortcuts.collectAsStateWithLifecycle()
-  val logEntries by InMemoryLogStore.entries.collectAsStateWithLifecycle()
+  val context = LocalContext.current
+  val loggingController = (context.applicationContext as A11YButtonApplication).loggingController
+  val loggingState by loggingController.state.collectAsStateWithLifecycle()
   val diagnostics by ServiceDiagnosticsStore.state.collectAsStateWithLifecycle()
   val lifecycleOwner = LocalLifecycleOwner.current
-  val context = LocalContext.current
   var destination by rememberSaveable { mutableStateOf(MainDestination.Home) }
   // Where the FAQ's back navigation goes, since it is reachable from Home, Setup and Preferences.
   var faqReturnTo by rememberSaveable { mutableStateOf(MainDestination.Home) }
+  var logsReturnTo by rememberSaveable { mutableStateOf(MainDestination.Preferences) }
   val canOpenDebugTools = BuildConfig.DEBUG
 
   DisposableEffect(lifecycleOwner, viewModel) {
@@ -378,22 +381,25 @@ fun MainRoute(
     MainDestination.DebugMenu -> {
       BackHandler { destination = MainDestination.Home }
       DebugMenuScreen(
-          logCount = logEntries.items.size,
+          loggingState = loggingState,
           diagnostics = diagnostics,
           onBack = { destination = MainDestination.Home },
-          onOpenLogs = { destination = MainDestination.DebugLogs },
+          onOpenLogs = {
+            logsReturnTo = MainDestination.DebugMenu
+            destination = MainDestination.Logs
+          },
           modifier = modifier,
       )
     }
 
-    MainDestination.DebugLogs -> {
-      BackHandler { destination = MainDestination.DebugMenu }
-      DebugLogsScreen(
-          entries = logEntries,
-          onBack = { destination = MainDestination.DebugMenu },
-          onClearLogs = InMemoryLogStore::clear,
-          modifier = modifier,
-      )
+    MainDestination.Logs -> {
+      BackHandler { destination = logsReturnTo }
+      val source = loggingController.capture
+      if (loggingState.enabled && !loggingState.transitioning && source != null) {
+        LogViewer(source = source, onBack = { destination = logsReturnTo }, modifier = modifier)
+      } else {
+        LaunchedEffect(Unit) { destination = logsReturnTo }
+      }
     }
 
     MainDestination.Preferences -> {
@@ -412,6 +418,12 @@ fun MainRoute(
         PreferencesScreen(
             themeMode = themeMode,
             onThemeModeChanged = viewModel::setThemeMode,
+            loggingState = loggingState,
+            onLoggingChanged = loggingController::setEnabled,
+            onOpenLogs = {
+              logsReturnTo = MainDestination.Preferences
+              destination = MainDestination.Logs
+            },
             onOpenFaq = {
               faqReturnTo = MainDestination.Preferences
               destination = MainDestination.Faq
@@ -1104,6 +1116,9 @@ internal fun PreferencesScreen(
     onThemeModeChanged: (ThemeMode) -> Unit,
     onOpenFaq: () -> Unit,
     modifier: Modifier = Modifier,
+    loggingState: LoggingState = LoggingState(transitioning = false),
+    onLoggingChanged: (Boolean) -> Unit = {},
+    onOpenLogs: () -> Unit = {},
 ) {
   val uriHandler = LocalUriHandler.current
   Column(
@@ -1130,6 +1145,33 @@ internal fun PreferencesScreen(
               },
           )
         }
+      }
+    }
+    SectionCard(title = stringResource(id = R.string.settings_logging_title)) {
+      val loggingLabel = stringResource(id = R.string.settings_logging_title)
+      Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Text(text = loggingLabel, modifier = Modifier.weight(1f))
+        Switch(
+            checked = loggingState.enabled,
+            onCheckedChange = onLoggingChanged,
+            enabled = !loggingState.transitioning,
+            modifier = Modifier.semantics { contentDescription = loggingLabel },
+        )
+      }
+
+      if (loggingState.error) {
+        Text(
+            text = stringResource(id = R.string.settings_logging_error),
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+      }
+      OutlinedButton(
+          onClick = onOpenLogs,
+          enabled = loggingState.enabled && !loggingState.transitioning,
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(text = stringResource(id = R.string.settings_view_logs))
       }
     }
     SectionCard(title = stringResource(id = R.string.home_support_title)) {
@@ -1494,7 +1536,7 @@ private enum class PickerMode(
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun DebugMenuScreen(
-    logCount: Int,
+    loggingState: LoggingState,
     diagnostics: ServiceDiagnostics,
     onBack: () -> Unit,
     onOpenLogs: () -> Unit,
@@ -1516,11 +1558,17 @@ private fun DebugMenuScreen(
     ) {
       SectionCard(title = stringResource(id = R.string.debug_menu_title)) {
         Text(
-            text = stringResource(id = R.string.debug_menu_logs_count, logCount),
+            text =
+                stringResource(
+                    id =
+                        if (loggingState.enabled) R.string.logging_enabled
+                        else R.string.logging_disabled
+                ),
             style = MaterialTheme.typography.bodyMedium,
         )
         Button(
             onClick = onOpenLogs,
+            enabled = loggingState.enabled && !loggingState.transitioning,
             modifier = Modifier.fillMaxWidth(),
         ) {
           Text(text = stringResource(id = R.string.debug_menu_open_logs))
@@ -1555,114 +1603,6 @@ private fun DebugMenuScreen(
         StatusRow(
             label = stringResource(id = R.string.debug_last_trigger_label),
             value = formatDebugTimestampOrUnknown(diagnostics.lastTriggerAtMillis),
-        )
-      }
-    }
-  }
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-private fun DebugLogsScreen(
-    entries: LogEntries,
-    onBack: () -> Unit,
-    onClearLogs: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-  Scaffold(
-      modifier = modifier.fillMaxSize(),
-      topBar = {
-        AppTopBar(
-            title = stringResource(id = R.string.debug_logs_title),
-            showBack = true,
-            onBack = onBack,
-        )
-      },
-  ) { innerPadding ->
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
-    ) {
-      OutlinedButton(
-          onClick = onClearLogs,
-          modifier = Modifier.fillMaxWidth(),
-      ) {
-        Text(text = stringResource(id = R.string.debug_logs_clear))
-      }
-
-      if (entries.items.isEmpty()) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize(),
-        ) {
-          Text(
-              text = stringResource(id = R.string.debug_logs_empty),
-              style = MaterialTheme.typography.bodyMedium,
-          )
-        }
-      } else {
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-          items(
-              items = entries.items.asReversed(),
-              key = { entry ->
-                "${entry.timestampMillis}:${entry.priority}:${entry.tag}:${entry.message}"
-              },
-          ) { entry ->
-            LogEntryCard(entry = entry)
-          }
-        }
-      }
-    }
-  }
-}
-
-@Composable
-private fun LogEntryCard(
-    entry: LogEntry,
-    modifier: Modifier = Modifier,
-) {
-  Card(modifier = modifier.fillMaxWidth()) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(16.dp),
-    ) {
-      Row(
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-          modifier = Modifier.fillMaxWidth(),
-      ) {
-        Text(
-            text = formatLogPriority(entry.priority),
-            style = MaterialTheme.typography.labelLarge,
-        )
-        Text(
-            text = formatLogTimestamp(entry.timestampMillis),
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-      }
-      Text(
-          text = entry.tag ?: stringResource(id = R.string.debug_log_entry_fallback_tag),
-          style = MaterialTheme.typography.labelMedium,
-          maxLines = 2,
-          overflow = TextOverflow.Ellipsis,
-      )
-      Text(
-          text = entry.message,
-          style = MaterialTheme.typography.bodyMedium,
-          maxLines = 6,
-          overflow = TextOverflow.Ellipsis,
-      )
-      entry.throwable?.let { throwable ->
-        Text(
-            text = "${throwable::class.java.simpleName}: ${throwable.message.orEmpty()}",
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
         )
       }
     }
@@ -1887,17 +1827,6 @@ private fun contextString(
     id: Int,
     argument: String,
 ): String = stringResource(id = id, argument)
-
-private fun formatLogPriority(priority: Int): String =
-    when (priority) {
-      android.util.Log.VERBOSE -> "V"
-      android.util.Log.DEBUG -> "D"
-      android.util.Log.INFO -> "I"
-      android.util.Log.WARN -> "W"
-      android.util.Log.ERROR -> "E"
-      android.util.Log.ASSERT -> "A"
-      else -> priority.toString()
-    }
 
 private fun formatLogTimestamp(timestampMillis: Long): String =
     LOG_TIMESTAMP_FORMATTER.format(Instant.ofEpochMilli(timestampMillis))

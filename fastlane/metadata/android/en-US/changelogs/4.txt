@@ -3,3 +3,4 @@ The button can now open an app shortcut, not just an app. For example, jump stra
 - The picker has two modes: Apps and App shortcuts. Shortcuts are listed per app, and apps that let you create a shortcut offer it from the same list.
 - Added an in-app FAQ section
 - Improve overall app UI/UX
+- Improved in-app logs. They now persist across crashes. Logs are local only, this feature is meant for debbuging issues.

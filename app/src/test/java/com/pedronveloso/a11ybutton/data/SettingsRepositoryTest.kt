@@ -162,6 +162,45 @@ class SettingsRepositoryTest {
     assertNull(settings.selectedShortcut)
   }
 
+  @Test
+  fun logging_defaultsMatchBuildUnlessSaved() {
+    for (default in listOf(false, true)) {
+      assertEquals(
+          default,
+          SettingsRepository.preferencesToAppSettings(emptyPreferences(), default)
+              .inAppLoggingEnabled,
+      )
+      for (saved in listOf(false, true)) {
+        val preferences =
+            mutablePreferencesOf(SettingsRepository.IN_APP_LOGGING_ENABLED_KEY to saved)
+        assertEquals(
+            saved,
+            SettingsRepository.preferencesToAppSettings(preferences, default).inAppLoggingEnabled,
+        )
+      }
+    }
+  }
+
+  @Test
+  fun logging_choicePersistsAndPreservesOtherSettings() = runTest {
+    val file = File.createTempFile("logging-settings", ".preferences_pb")
+    file.deleteOnExit()
+    val store = PreferenceDataStoreFactory.create(produceFile = { file })
+    val repository = SettingsRepository(store, loggingDefault = false)
+    repository.updateShortcutSelection(SHORTCUT)
+    repository.setDisclosureAccepted(true)
+    repository.enableNotifications()
+    repository.setThemeMode(com.pedronveloso.a11ybutton.model.ThemeMode.DARK)
+    val before = repository.settings.first()
+    repository.setInAppLoggingEnabled(true)
+    val reopened = SettingsRepository(store, loggingDefault = false)
+    assertEquals(before.copy(inAppLoggingEnabled = true), reopened.settings.first())
+    repository.setInAppLoggingEnabled(false)
+    assertEquals(before.copy(loggingCleanupPending = true), reopened.settings.first())
+    repository.finishLoggingCleanup()
+    assertEquals(before, reopened.settings.first())
+  }
+
   private fun createRepository(): SettingsRepository {
     val file = File.createTempFile("settings-repository-test", ".preferences_pb")
     file.deleteOnExit()

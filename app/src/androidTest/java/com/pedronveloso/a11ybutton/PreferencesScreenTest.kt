@@ -5,12 +5,18 @@
 package com.pedronveloso.a11ybutton
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.pedronveloso.a11ybutton.logging.LoggingState
 import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
 import org.junit.Assert.assertEquals
@@ -38,5 +44,32 @@ class PreferencesScreenTest {
     composeTestRule.onNodeWithText("Open FAQ").performScrollTo().assertIsDisplayed().performClick()
 
     assertEquals(1, faqOpened)
+  }
+
+  @Test
+  fun loggingSwitch_exposesStateAndControlsViewerAvailability() {
+    val state = mutableStateOf(LoggingState(transitioning = false))
+    var viewerOpened = 0
+    composeTestRule.setContent {
+      A11YButtonTheme {
+        PreferencesScreen(
+            themeMode = ThemeMode.SYSTEM,
+            onThemeModeChanged = {},
+            onOpenFaq = {},
+            loggingState = state.value,
+            onLoggingChanged = { state.value = LoggingState(enabled = it, transitioning = false) },
+            onOpenLogs = { viewerOpened++ },
+        )
+      }
+    }
+    val switch = composeTestRule.onNodeWithContentDescription("In-app logging")
+    switch.performScrollTo().assertIsOff()
+    composeTestRule.onNodeWithText("View logs").performScrollTo().assertIsNotEnabled()
+    switch.performScrollTo().performClick().assertIsOn()
+    composeTestRule.onNodeWithText("View logs").performScrollTo().performClick()
+    assertEquals(1, viewerOpened)
+    composeTestRule.runOnIdle { state.value = LoggingState(enabled = true, transitioning = true) }
+    switch.performScrollTo().assertIsNotEnabled()
+    composeTestRule.onNodeWithText("View logs").performScrollTo().assertIsNotEnabled()
   }
 }
