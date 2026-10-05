@@ -32,6 +32,7 @@ private val Context.dataStore: DataStore<Preferences> by
 
 class SettingsRepository(
     private val dataStore: DataStore<Preferences>,
+    private val loggingDefault: Boolean = com.pedronveloso.a11ybutton.BuildConfig.DEBUG,
 ) {
   val settings: Flow<AppSettings> =
       dataStore.data
@@ -43,7 +44,20 @@ class SettingsRepository(
               throw throwable
             }
           }
-          .map(::preferencesToAppSettings)
+          .map { preferencesToAppSettings(it, loggingDefault) }
+
+  suspend fun setInAppLoggingEnabled(enabled: Boolean) {
+    Timber.i("Updating in-app logging to %s", enabled)
+    dataStore.edit { preferences ->
+      preferences[IN_APP_LOGGING_ENABLED_KEY] = enabled
+      if (!enabled) preferences[LOGGING_CLEANUP_PENDING_KEY] = true
+    }
+  }
+
+  internal suspend fun finishLoggingCleanup() {
+    Timber.i("Finished clearing retained logs")
+    dataStore.edit { it.remove(LOGGING_CLEANUP_PENDING_KEY) }
+  }
 
   suspend fun setDisclosureAccepted(accepted: Boolean) {
     Timber.i("Updating disclosure acceptance to %s", accepted)
@@ -125,12 +139,19 @@ class SettingsRepository(
     internal val NOTIFICATION_PREFERENCE_KEY = stringPreferencesKey("notification_preference")
     internal val NOTIFICATIONS_OPTED_OUT_KEY = booleanPreferencesKey("notifications_opted_out")
     internal val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
+    internal val LOGGING_CLEANUP_PENDING_KEY = booleanPreferencesKey("logging_cleanup_pending")
+    internal val IN_APP_LOGGING_ENABLED_KEY = booleanPreferencesKey("in_app_logging_enabled")
     internal val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
 
     fun fromContext(context: Context): SettingsRepository = SettingsRepository(context.dataStore)
 
-    internal fun preferencesToAppSettings(preferences: Preferences): AppSettings =
+    internal fun preferencesToAppSettings(
+        preferences: Preferences,
+        loggingDefault: Boolean = com.pedronveloso.a11ybutton.BuildConfig.DEBUG,
+    ): AppSettings =
         AppSettings(
+            loggingCleanupPending = preferences[LOGGING_CLEANUP_PENDING_KEY] ?: false,
+            inAppLoggingEnabled = preferences[IN_APP_LOGGING_ENABLED_KEY] ?: loggingDefault,
             selectedPackageName = preferences[SELECTED_PACKAGE_NAME_KEY].nullIfBlank(),
             selectedComponentName = preferences[SELECTED_COMPONENT_NAME_KEY].nullIfBlank(),
             selectedShortcut = preferences.selectedShortcut(),

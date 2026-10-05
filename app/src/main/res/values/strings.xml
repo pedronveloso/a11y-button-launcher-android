@@ -106,9 +106,7 @@
     <string name="picker_shortcut_create_failed">That app did not return a usable shortcut. Try again or pick another.</string>
     <string name="debug_open_menu">Open debug menu</string>
     <string name="debug_menu_title">Debug Menu</string>
-    <string name="debug_logs_title">In-Memory Logs</string>
-    <string name="debug_menu_open_logs">Open in-memory logs</string>
-    <string name="debug_menu_logs_count">Captured log entries: %1$d</string>
+    <string name="debug_menu_open_logs">View logs</string>
     <string name="debug_diagnostics_title">Service diagnostics</string>
     <string name="debug_service_connection_label">Service connection</string>
     <string name="debug_service_connection_connected">Connected</string>
@@ -121,9 +119,6 @@
     <string name="debug_last_button_press_label">Last button press seen</string>
     <string name="debug_last_trigger_label">Last trigger handled</string>
     <string name="debug_unknown">Unknown</string>
-    <string name="debug_logs_empty">No logs captured yet.</string>
-    <string name="debug_logs_clear">Clear logs</string>
-    <string name="debug_log_entry_fallback_tag">App</string>
     <string name="service_settings_title">Service Help</string>
     <string name="service_settings_body">Use these actions to reopen the app or inspect the Android app details screen when you need to verify permissions or recover from a bad state.</string>
     <string name="service_settings_actions_title">Actions</string>
@@ -162,4 +157,14 @@
     <string name="settings_open_source_link">Apache 2.0 license</string>
     <string name="settings_open_source_suffix">.</string>
     <string name="settings_github_label">View on GitHub</string>
+    <string name="settings_logging_title">In-app logging</string>
+    <string name="settings_logging_switch_label">Save logs on this device</string>
+    <string name="settings_view_logs">View logs</string>
+    <string name="logs_screen_title">Logs</string>
+    <string name="logs_unavailable">Turn on in-app logging in Settings to view logs.</string>
+    <string name="logs_preparing">Getting logs ready…</string>
+    <string name="settings_logging_error_enable">Could not turn on logging. Capture is off. Try again.</string>
+    <string name="settings_logging_error_cleanup">Could not update logging or clear saved logs. Capture is off. Restart the app to retry cleanup.</string>
+    <string name="debug_menu_logging_enabled">Log capture is on</string>
+    <string name="debug_menu_logging_disabled">Log capture is off</string>
 </resources>

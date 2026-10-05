@@ -56,12 +56,15 @@ jobs:
               extras; flag any new permission beyond POST_NOTIFICATIONS
             - Verify privacy and security rules: no new network permission and no
               analytics or crash-reporting SDK in app/build.gradle.kts or
-              gradle/libs.versions.toml, no secrets committed, and no data leaving the
-              device. Timber calls must use a format string with arguments, never
-              interpolation, and must not log user-visible app labels. Debug-only
-              surfaces (in-memory log store, debug menu, service diagnostics) live in
-              app/src/main, so they must stay gated behind BuildConfig.DEBUG and must
-              not become reachable in the minified release build
+              gradle/libs.versions.toml, no secrets committed, and no automatic data
+              leaving the device. User-initiated log copy/share is allowed. Timber calls
+              must use a format string with arguments, never interpolation, and must not
+              log user-visible app labels. In-app logging and the
+              log viewer are available in production with explicit opt-in, local
+              persistence, and clearing when disabled. Debug builds default to capture
+              enabled; saved choices override either default. The debug menu and service
+              diagnostics must stay gated behind BuildConfig.DEBUG and must not become
+              reachable in the minified release build
             - Require tests alongside logic changes: JVM tests in app/src/test mirroring
               the main package layout, named <Class>Test.kt with descriptive snake_case
               names, using JUnit4 and kotlinx-coroutines-test; instrumentation tests in

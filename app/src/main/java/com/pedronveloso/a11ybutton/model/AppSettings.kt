@@ -5,6 +5,8 @@
 package com.pedronveloso.a11ybutton.model
 
 data class AppSettings(
+    val loggingCleanupPending: Boolean = false,
+    val inAppLoggingEnabled: Boolean = com.pedronveloso.a11ybutton.BuildConfig.DEBUG,
     val selectedPackageName: String? = null,
     val selectedComponentName: String? = null,
     val selectedShortcut: ShortcutTarget? = null,

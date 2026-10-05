@@ -8,7 +8,7 @@ permalink: /privacy/
 
 **A11Y Button Launcher** is an open-source Android app developed by Pedro Veloso and licensed under the [Apache License 2.0](https://github.com/pedronveloso/a11y-button-launcher-android/blob/main/LICENSE).
 
-**Effective date:** October 4, 2026
+**Effective date:** October 5, 2026
 
 ---
 
@@ -33,6 +33,10 @@ A11Y Button Launcher lets you assign any installed app, or one of an app's short
 The app saves a small set of preferences using Android's DataStore, which lives entirely on your device. This includes the app or app shortcut you picked: for a shortcut, its package name, identifier, display name, and the launch intent.
 
 None of this data ever leaves your device. There are no servers, no cloud sync, and no third-party SDKs that collect data.
+
+### In-app logs (optional)
+
+You can turn on in-app logging in the app's settings, for troubleshooting. It is off by default in release builds. While on, the app saves its own log messages on your device, including across crashes, with sensitive values such as URLs, email addresses and credentials redacted. Turning logging off deletes the saved logs. Logs leave your device only if you choose to copy or share them from the log viewer.
 ---
 
 ## Permissions
