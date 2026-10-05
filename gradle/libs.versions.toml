@@ -16,7 +16,6 @@ timber = "5.0.1"
 workmanager = "2.11.2"
 
 [libraries]
-kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 logviewer = { group = "io.github.pedronveloso", name = "logviewer", version = "0.8.0" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

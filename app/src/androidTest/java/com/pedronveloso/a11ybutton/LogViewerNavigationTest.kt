@@ -29,7 +29,7 @@ class LogViewerNavigationTest {
     rule.activityRule.scenario.recreate()
     rule.onNodeWithTag("logs_tab").assertIsDisplayed()
     rule.onNodeWithContentDescription("Go back").performClick()
-    rule.onNodeWithContentDescription("In-app logging").performScrollTo().assertIsDisplayed()
+    rule.onNodeWithText("Save logs on this device").performScrollTo().assertIsDisplayed()
   }
 
   @Test
@@ -41,6 +41,22 @@ class LogViewerNavigationTest {
     rule.activityRule.scenario.recreate()
     rule.onNodeWithContentDescription("Go back").performClick()
     rule.onNodeWithText("Service diagnostics").assertIsDisplayed()
+  }
+
+  @Test
+  fun viewer_explainsWhenLoggingTurnsOffWhileOpen() {
+    enableLogging()
+    rule.onNodeWithContentDescription("Preferences").performClick()
+    rule.onNodeWithText("View logs").performScrollTo().performClick()
+    rule.onNodeWithTag("logs_tab").assertIsDisplayed()
+    val controller = (rule.activity.application as A11YButtonApplication).loggingController
+    controller.setEnabled(false)
+    rule.waitUntil(10_000) {
+      !controller.state.value.enabled && !controller.state.value.transitioning
+    }
+    rule.onNodeWithText("Turn on in-app logging in Settings to view logs.").assertIsDisplayed()
+    rule.onNodeWithContentDescription("Back").performClick()
+    rule.onNodeWithText("Save logs on this device").performScrollTo().assertIsDisplayed()
   }
 
   private fun enableLogging() {

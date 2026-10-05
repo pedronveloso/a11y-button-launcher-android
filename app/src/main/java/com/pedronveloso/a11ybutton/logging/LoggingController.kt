@@ -6,17 +6,15 @@ package com.pedronveloso.a11ybutton.logging
 
 import android.content.Context
 import com.pedronveloso.a11ybutton.data.SettingsRepository
+import com.pedronveloso.logviewer.StandardLogRedactor
 import com.pedronveloso.logviewer.TimberLogCapture
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,43 +33,39 @@ class LoggingController(
 ) {
   private val appContext = context.applicationContext
   private val mutex = Mutex()
-  private val requestPending = AtomicBoolean(false)
   private val mutableState = MutableStateFlow(LoggingState())
   val state = mutableState.asStateFlow()
   var capture: TimberLogCapture? = null
     private set
 
   init {
+    // Only this controller writes the logging settings, so the persisted state is applied once at
+    // startup. State starts as transitioning, which keeps setEnabled out until this finishes.
     scope.launch {
-      repository.settings
-          .map { it.inAppLoggingEnabled to it.loggingCleanupPending }
-          .distinctUntilChanged()
-          .collect {
-            mutex.withLock {
-              if (requestPending.get()) return@withLock
-              // Read again under the lock: an emission may predate a user's transition.
-              mutableState.value = mutableState.value.copy(transitioning = true)
-              try {
-                val settings = repository.settings.first()
-                if (settings.loggingCleanupPending) clearRetainedSessions()
-                if (settings.inAppLoggingEnabled) ensureCapture().install()
-                else capture?.uninstall()
-                mutableState.value =
-                    LoggingState(enabled = settings.inAppLoggingEnabled, transitioning = false)
-              } catch (failure: Exception) {
-                if (failure is CancellationException) throw failure
-                capture?.uninstall()
-                mutableState.value = LoggingState(transitioning = false, error = true)
-              }
-            }
-          }
+      mutex.withLock {
+        try {
+          val settings = repository.settings.first()
+          if (settings.loggingCleanupPending) clearRetainedSessions()
+          if (settings.inAppLoggingEnabled) ensureCapture().install() else capture?.uninstall()
+          mutableState.value =
+              LoggingState(enabled = settings.inAppLoggingEnabled, transitioning = false)
+        } catch (failure: Exception) {
+          if (failure is CancellationException) throw failure
+          capture?.uninstall()
+          mutableState.value = LoggingState(transitioning = false, error = true)
+        }
+      }
     }
   }
 
   fun setEnabled(enabled: Boolean) {
     val before = mutableState.value
-    if (before.transitioning || !requestPending.compareAndSet(false, true)) return
-    mutableState.value = before.copy(transitioning = true)
+    if (
+        before.transitioning ||
+            !mutableState.compareAndSet(before, before.copy(transitioning = true))
+    ) {
+      return
+    }
     scope.launch {
       mutex.withLock {
         try {
@@ -90,15 +84,19 @@ class LoggingController(
           if (failure is CancellationException) throw failure
           capture?.uninstall()
           mutableState.value = LoggingState(transitioning = false, error = true)
-        } finally {
-          requestPending.set(false)
         }
       }
     }
   }
 
   private fun ensureCapture(): TimberLogCapture =
-      capture ?: TimberLogCapture(appContext, persistAcrossCrashes = true).also { capture = it }
+      capture
+          ?: TimberLogCapture(
+                  appContext,
+                  persistAcrossCrashes = true,
+                  redact = StandardLogRedactor::redact,
+              )
+              .also { capture = it }
 
   private suspend fun clearRetainedSessions() {
     val source = ensureCapture()

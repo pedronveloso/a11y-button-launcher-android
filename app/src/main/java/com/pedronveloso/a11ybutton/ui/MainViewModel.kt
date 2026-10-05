@@ -254,7 +254,7 @@ class MainViewModel(
   }
 
   fun setServiceMessage(message: String?) {
-    Timber.i("Updating service message to %s", message)
+    Timber.i("Updating service message, present=%s", message != null)
     serviceMessage.value = message
   }
 

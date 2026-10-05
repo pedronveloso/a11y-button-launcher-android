@@ -158,8 +158,11 @@
     <string name="settings_open_source_suffix">.</string>
     <string name="settings_github_label">View on GitHub</string>
     <string name="settings_logging_title">In-app logging</string>
+    <string name="settings_logging_switch_label">Save logs on this device</string>
     <string name="settings_view_logs">View logs</string>
+    <string name="logs_unavailable">Turn on in-app logging in Settings to view logs.</string>
+    <string name="logs_preparing">Getting logs ready…</string>
     <string name="settings_logging_error">Could not update logging or clear saved logs. Capture is off. Restart the app to retry cleanup.</string>
-    <string name="logging_enabled">Log capture is on</string>
-    <string name="logging_disabled">Log capture is off</string>
+    <string name="debug_menu_logging_enabled">Log capture is on</string>
+    <string name="debug_menu_logging_disabled">Log capture is off</string>
 </resources>

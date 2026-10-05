@@ -37,6 +37,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -111,6 +112,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pedronveloso.a11ybutton.data.InstalledAppsRepository
 import com.pedronveloso.a11ybutton.data.filterByQuery
+import com.pedronveloso.a11ybutton.logging.LoggingController
 import com.pedronveloso.a11ybutton.logging.LoggingState
 import com.pedronveloso.a11ybutton.model.AppPickerShortcuts
 import com.pedronveloso.a11ybutton.model.InstalledApp
@@ -171,7 +173,12 @@ class MainActivity : ComponentActivity() {
     enableEdgeToEdge()
     setContent {
       val themeMode by mainViewModel.themeMode.collectAsStateWithLifecycle()
-      A11YButtonTheme(themeMode = themeMode) { MainRoute(viewModel = mainViewModel) }
+      A11YButtonTheme(themeMode = themeMode) {
+        MainRoute(
+            loggingController = (application as A11YButtonApplication).loggingController,
+            viewModel = mainViewModel,
+        )
+      }
     }
   }
 
@@ -184,7 +191,8 @@ class MainActivity : ComponentActivity() {
 
   private fun consumeIntent(intent: Intent?) {
     val serviceMessage = intent?.getStringExtra(EXTRA_STATUS_MESSAGE)
-    Timber.d("Consuming activity intent with status message=%s", serviceMessage)
+    // The extra comes from any app, so only log whether it was present.
+    Timber.d("Consuming activity intent, has status message=%s", serviceMessage != null)
     mainViewModel.setServiceMessage(serviceMessage)
     intent?.removeExtra(EXTRA_STATUS_MESSAGE)
   }
@@ -197,6 +205,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun MainRoute(
+    loggingController: LoggingController,
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = viewModel(),
 ) {
@@ -204,7 +213,6 @@ fun MainRoute(
   val pickerApps by viewModel.pickerApps.collectAsStateWithLifecycle()
   val pickerShortcuts by viewModel.pickerShortcuts.collectAsStateWithLifecycle()
   val context = LocalContext.current
-  val loggingController = (context.applicationContext as A11YButtonApplication).loggingController
   val loggingState by loggingController.state.collectAsStateWithLifecycle()
   val diagnostics by ServiceDiagnosticsStore.state.collectAsStateWithLifecycle()
   val lifecycleOwner = LocalLifecycleOwner.current
@@ -398,7 +406,11 @@ fun MainRoute(
       if (loggingState.enabled && !loggingState.transitioning && source != null) {
         LogViewer(source = source, onBack = { destination = logsReturnTo }, modifier = modifier)
       } else {
-        LaunchedEffect(Unit) { destination = logsReturnTo }
+        LogsUnavailable(
+            loggingState = loggingState,
+            onBack = { destination = logsReturnTo },
+            modifier = modifier,
+        )
       }
     }
 
@@ -1111,6 +1123,42 @@ private fun FaqScreen(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
+private fun LogsUnavailable(
+    loggingState: LoggingState,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  Scaffold(
+      modifier = modifier.fillMaxSize(),
+      topBar = {
+        AppTopBar(
+            title = stringResource(id = R.string.settings_view_logs),
+            showBack = true,
+            onBack = onBack,
+        )
+      },
+  ) { innerPadding ->
+    Text(
+        text =
+            stringResource(
+                id =
+                    when {
+                      loggingState.error -> R.string.settings_logging_error
+                      loggingState.transitioning -> R.string.logs_preparing
+                      else -> R.string.logs_unavailable
+                    }
+            ),
+        style = MaterialTheme.typography.bodyLarge,
+        modifier =
+            Modifier.padding(innerPadding).padding(24.dp).semantics {
+              liveRegion = LiveRegionMode.Polite
+            },
+    )
+  }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
 internal fun PreferencesScreen(
     themeMode: ThemeMode,
     onThemeModeChanged: (ThemeMode) -> Unit,
@@ -1148,14 +1196,25 @@ internal fun PreferencesScreen(
       }
     }
     SectionCard(title = stringResource(id = R.string.settings_logging_title)) {
-      val loggingLabel = stringResource(id = R.string.settings_logging_title)
-      Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text(text = loggingLabel, modifier = Modifier.weight(1f))
+      Row(
+          verticalAlignment = Alignment.CenterVertically,
+          modifier =
+              Modifier.fillMaxWidth()
+                  .toggleable(
+                      value = loggingState.enabled,
+                      enabled = !loggingState.transitioning,
+                      role = Role.Switch,
+                      onValueChange = onLoggingChanged,
+                  ),
+      ) {
+        Text(
+            text = stringResource(id = R.string.settings_logging_switch_label),
+            modifier = Modifier.weight(1f),
+        )
         Switch(
             checked = loggingState.enabled,
-            onCheckedChange = onLoggingChanged,
+            onCheckedChange = null,
             enabled = !loggingState.transitioning,
-            modifier = Modifier.semantics { contentDescription = loggingLabel },
         )
       }
 
@@ -1561,8 +1620,8 @@ private fun DebugMenuScreen(
             text =
                 stringResource(
                     id =
-                        if (loggingState.enabled) R.string.logging_enabled
-                        else R.string.logging_disabled
+                        if (loggingState.enabled) R.string.debug_menu_logging_enabled
+                        else R.string.debug_menu_logging_disabled
                 ),
             style = MaterialTheme.typography.bodyMedium,
         )

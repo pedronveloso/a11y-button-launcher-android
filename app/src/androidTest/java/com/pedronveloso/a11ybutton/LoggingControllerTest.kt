@@ -42,7 +42,7 @@ class LoggingControllerTest {
   }
 
   @Test
-  fun capture_preservesTextAndExceptions_clearsPreviousSessions_andAvoidsDuplicateTrees() =
+  fun capture_redactsText_preservesExceptions_clearsPreviousSessions_andAvoidsDuplicateTrees() =
       runBlocking {
         withController(default = true, seedPrevious = true) { controller, repository, _ ->
           awaitSettled(controller)
@@ -55,7 +55,7 @@ class LoggingControllerTest {
               .e(IllegalStateException("original exception"), "Original user@example.com")
           val captured = source.entries(current.id).filter { it.tag == "logging-test" }
           assertEquals(1, captured.size)
-          assertEquals("Original user@example.com", captured.single().message)
+          assertEquals("Original <redacted>", captured.single().message)
           assertTrue(captured.single().throwableStackTrace!!.contains("original exception"))
           repeat(3) {
             controller.setEnabled(false)
