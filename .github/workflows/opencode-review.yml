@@ -20,6 +20,68 @@ jobs:
       "renovate[bot]", "imgbot[bot]"]'), github.event.pull_request.user.login)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      REVIEW_PROMPT: |
+          Review this pull request following the repository guidelines in AGENTS.md
+          and the product scope in PRODUCT.md.
+          - Check for correctness and potential bugs
+          - Enforce the product scope: this app maps the system Accessibility
+            button/shortcut to exactly one selected app. Flag any change that adds
+            overlays, multi-app menus, gesture injection, screen scraping, automation
+            chains, launcher replacement, accounts, analytics, ads, crash reporting,
+            or any network data collection
+          - Keep the accessibility surface minimal: in
+            app/src/main/res/xml/accessibility_service_config.xml,
+            canRetrieveWindowContent must stay false and flags must stay limited to
+            flagRequestAccessibilityButton. Flag any widening of event types, flags,
+            or window-content access as a product and privacy decision, not a refactor
+          - Check AndroidManifest changes: the service must keep
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" and
+            exported=false; activities and receivers must stay exported=false unless
+            an intent-filter requires it; flag intent redirection from unvalidated
+            extras; flag any new permission beyond POST_NOTIFICATIONS
+          - Verify privacy and security rules: no new network permission and no
+            analytics or crash-reporting SDK in app/build.gradle.kts or
+            gradle/libs.versions.toml, no secrets committed, and no automatic data
+            leaving the device. User-initiated log copy/share is allowed. Timber calls
+            must use a format string with arguments, never interpolation, and must not
+            log user-visible app labels. In-app logging and the
+            log viewer are available in production with explicit opt-in, local
+            persistence, and clearing when disabled. Debug builds default to capture
+            enabled; saved choices override either default. The debug menu and service
+            diagnostics must stay gated behind BuildConfig.DEBUG and must not become
+            reachable in the minified release build
+          - Require tests alongside logic changes: JVM tests in app/src/test mirroring
+            the main package layout, named <Class>Test.kt with descriptive snake_case
+            names, using JUnit4 and kotlinx-coroutines-test; instrumentation tests in
+            app/src/androidTest when UI or platform behavior changes. Expect coverage
+            for SettingsRepository, InstalledAppsRepository,
+            AccessibilityStatusRepository, ui/MainScreenState derivation, MainViewModel
+            state, and LaunchIntentFactory component parsing (app/src/test/.../service
+            is currently empty), plus a regression test for every bug fix
+          - User-facing copy must live in
+            app/src/main/res/values/strings.xml. Flag hardcoded strings in Composables
+            and new string literals in code. The app ships English only today, so no
+            per-locale sync is required; if a PR adds a values-* locale, every string
+            must be present in all of them
+          - Do not run builds. Android CI already runs spotlessCheck,
+            testDebugUnitTest, lintDebug, and assembleDebug on JDK 21, so a build
+            invocation only duplicates it. Assess formatting by reading the diff:
+            ktfmt style with 2-space indentation, no trailing whitespace, file ends
+            with a newline, and every Kotlin file carries the Spotless license header
+            "Copyright (C) <year> Pedro Veloso" and
+            "SPDX-License-Identifier: Apache-2.0" placed before the package declaration
+          - Flag changes to app/lint-baseline.xml or new lint disable entries in
+            app/build.gradle.kts unless they intentionally accept an existing finding
+          - Check UI work against .github/copilot-instructions.md: Material 3 and
+            dynamic color, theme code in ui/theme, previews via
+            ui/preview/ThemePreviews.kt, contentDescription on interactive icons, and
+            readable contrast
+          - Flag missing distribution bookkeeping for user-facing changes:
+            versionCode and versionName in app/build.gradle.kts, and the F-Droid
+            changelog in fastlane/metadata/android/en-US/changelogs
+          - Suggest concrete, actionable improvements with file references
+          Return the resulting review as your final response.
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -27,6 +89,8 @@ jobs:
           persist-credentials: true
 
       - name: Run OpenCode review
+        id: primary
+        continue-on-error: true
         uses: anomalyco/opencode/github@77fc88c8ade8e5a620ebbe1197f3a572d29ae91a # github-v1.2.19
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -35,64 +99,16 @@ jobs:
           model: opencode/big-pickle
           agent: pr-review
           use_github_token: true
-          prompt: |
-            Review this pull request following the repository guidelines in AGENTS.md
-            and the product scope in PRODUCT.md.
-            - Check for correctness and potential bugs
-            - Enforce the product scope: this app maps the system Accessibility
-              button/shortcut to exactly one selected app. Flag any change that adds
-              overlays, multi-app menus, gesture injection, screen scraping, automation
-              chains, launcher replacement, accounts, analytics, ads, crash reporting,
-              or any network data collection
-            - Keep the accessibility surface minimal: in
-              app/src/main/res/xml/accessibility_service_config.xml,
-              canRetrieveWindowContent must stay false and flags must stay limited to
-              flagRequestAccessibilityButton. Flag any widening of event types, flags,
-              or window-content access as a product and privacy decision, not a refactor
-            - Check AndroidManifest changes: the service must keep
-              android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" and
-              exported=false; activities and receivers must stay exported=false unless
-              an intent-filter requires it; flag intent redirection from unvalidated
-              extras; flag any new permission beyond POST_NOTIFICATIONS
-            - Verify privacy and security rules: no new network permission and no
-              analytics or crash-reporting SDK in app/build.gradle.kts or
-              gradle/libs.versions.toml, no secrets committed, and no automatic data
-              leaving the device. User-initiated log copy/share is allowed. Timber calls
-              must use a format string with arguments, never interpolation, and must not
-              log user-visible app labels. In-app logging and the
-              log viewer are available in production with explicit opt-in, local
-              persistence, and clearing when disabled. Debug builds default to capture
-              enabled; saved choices override either default. The debug menu and service
-              diagnostics must stay gated behind BuildConfig.DEBUG and must not become
-              reachable in the minified release build
-            - Require tests alongside logic changes: JVM tests in app/src/test mirroring
-              the main package layout, named <Class>Test.kt with descriptive snake_case
-              names, using JUnit4 and kotlinx-coroutines-test; instrumentation tests in
-              app/src/androidTest when UI or platform behavior changes. Expect coverage
-              for SettingsRepository, InstalledAppsRepository,
-              AccessibilityStatusRepository, ui/MainScreenState derivation, MainViewModel
-              state, and LaunchIntentFactory component parsing (app/src/test/.../service
-              is currently empty), plus a regression test for every bug fix
-            - User-facing copy must live in
-              app/src/main/res/values/strings.xml. Flag hardcoded strings in Composables
-              and new string literals in code. The app ships English only today, so no
-              per-locale sync is required; if a PR adds a values-* locale, every string
-              must be present in all of them
-            - Do not run builds. Android CI already runs spotlessCheck,
-              testDebugUnitTest, lintDebug, and assembleDebug on JDK 21, so a build
-              invocation only duplicates it. Assess formatting by reading the diff:
-              ktfmt style with 2-space indentation, no trailing whitespace, file ends
-              with a newline, and every Kotlin file carries the Spotless license header
-              "Copyright (C) <year> Pedro Veloso" and
-              "SPDX-License-Identifier: Apache-2.0" placed before the package declaration
-            - Flag changes to app/lint-baseline.xml or new lint disable entries in
-              app/build.gradle.kts unless they intentionally accept an existing finding
-            - Check UI work against .github/copilot-instructions.md: Material 3 and
-              dynamic color, theme code in ui/theme, previews via
-              ui/preview/ThemePreviews.kt, contentDescription on interactive icons, and
-              readable contrast
-            - Flag missing distribution bookkeeping for user-facing changes:
-              versionCode and versionName in app/build.gradle.kts, and the F-Droid
-              changelog in fastlane/metadata/android/en-US/changelogs
-            - Suggest concrete, actionable improvements with file references
-            Return the resulting review as your final response.
+          prompt: ${{ env.REVIEW_PROMPT }}
+
+      - name: Run OpenCode review (fallback model)
+        if: steps.primary.outcome == 'failure'
+        uses: anomalyco/opencode/github@77fc88c8ade8e5a620ebbe1197f3a572d29ae91a # github-v1.2.19
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: opencode/space-bunny-free
+          agent: pr-review
+          use_github_token: true
+          prompt: ${{ env.REVIEW_PROMPT }}
