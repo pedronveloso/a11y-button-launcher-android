@@ -75,8 +75,8 @@ private val DarkColorScheme =
 data class A11YButtonStatusPalette(
     val positiveContainer: Color,
     val positiveContent: Color,
-    val attentionContainer: Color,
-    val attentionContent: Color,
+    val warningContainer: Color,
+    val warningContent: Color,
 )
 
 @Composable
@@ -116,8 +116,9 @@ fun A11YButtonTheme(
 
 private fun ColorScheme.toStatusPalette(isDark: Boolean): A11YButtonStatusPalette =
     A11YButtonStatusPalette(
-        positiveContainer = if (isDark) Color(0xFF183326) else tertiaryContainer,
-        positiveContent = if (isDark) Color(0xFF7EC8A0) else onTertiaryContainer,
-        attentionContainer = if (isDark) Color(0xFF0F2035) else Color(0xFFDDE8F5),
-        attentionContent = if (isDark) Color(0xFF93BEE3) else Color(0xFF0D3461),
+        // Fixed green and amber rather than dynamic color, so status always reads the same way.
+        positiveContainer = if (isDark) Color(0xFF183326) else Color(0xFFDCEFE0),
+        positiveContent = if (isDark) Color(0xFFA8DCBC) else Color(0xFF0F3D1E),
+        warningContainer = if (isDark) Color(0xFF3D2C06) else Color(0xFFFFE9C2),
+        warningContent = if (isDark) Color(0xFFFFD98A) else Color(0xFF4A3000),
     )

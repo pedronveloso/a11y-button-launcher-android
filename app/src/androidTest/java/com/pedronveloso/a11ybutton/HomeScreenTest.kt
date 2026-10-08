@@ -16,6 +16,7 @@ import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.InvalidSelectionReason
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 import com.pedronveloso.a11ybutton.model.ShortcutTarget
+import com.pedronveloso.a11ybutton.ui.BackgroundProtectionState
 import com.pedronveloso.a11ybutton.ui.MainScreenState
 import com.pedronveloso.a11ybutton.ui.SetupReadiness
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
@@ -24,6 +25,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+
+private val BatteryAllowed = BackgroundProtectionState(batteryOptimizationIgnored = true)
 
 @RunWith(AndroidJUnit4::class)
 class HomeScreenTest {
@@ -47,6 +50,7 @@ class HomeScreenTest {
                                     label = "Reader",
                                 ),
                         ),
+                    backgroundProtection = BatteryAllowed,
                     readiness = SetupReadiness.Ready,
                 ),
             onOpenSetup = {},
@@ -85,6 +89,7 @@ class HomeScreenTest {
                                     intentUri = "intent:#Intent;package=com.example.mail;end",
                                 ),
                         ),
+                    backgroundProtection = BatteryAllowed,
                     readiness = SetupReadiness.Ready,
                 ),
             onOpenSetup = {},
@@ -122,6 +127,7 @@ class HomeScreenTest {
                                     label = "Reader",
                                 ),
                         ),
+                    backgroundProtection = BatteryAllowed,
                     readiness = SetupReadiness.Ready,
                 ),
             onOpenSetup = { setupOpened = true },
@@ -238,5 +244,113 @@ class HomeScreenTest {
     composeTestRule.onNodeWithText("Choose what to open").performClick()
 
     composeTestRule.runOnIdle { assertEquals(1, chooseAppCount) }
+  }
+
+  @Test
+  fun statusCard_showsDescriptionsOnlyForRowsThatNeedAttention() {
+    composeTestRule.setContent {
+      A11YButtonTheme {
+        HomeScreen(
+            screenState =
+                MainScreenState(
+                    serviceEnabled = true,
+                    disclosureAccepted = true,
+                    selectedAppState = SelectedAppState.None,
+                    readiness = SetupReadiness.PartiallySetUp,
+                ),
+            onOpenSetup = {},
+            onChooseApp = {},
+            onOpenFaq = {},
+            onDismissServiceMessage = {},
+            onEnableNotifications = {},
+        )
+      }
+    }
+
+    composeTestRule.onNodeWithText("2 steps left").assertIsDisplayed()
+    // Done rows are a title only.
+    composeTestRule.onNodeWithText("Accessibility service").assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText("Turn it on in Accessibility settings so the button can work.")
+        .assertDoesNotExist()
+    // Rows needing attention carry a description.
+    composeTestRule.onNodeWithText("What the button opens").assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText("Choose the app or shortcut the button opens.")
+        .assertIsDisplayed()
+    composeTestRule.onNodeWithText("Unrestricted battery").assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText("Stops your phone from putting the service to sleep.")
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun statusCard_routesAttentionRowsToTheirFix() {
+    var setupOpened = 0
+    var chooseAppCount = 0
+
+    composeTestRule.setContent {
+      A11YButtonTheme {
+        HomeScreen(
+            screenState =
+                MainScreenState(
+                    serviceEnabled = true,
+                    disclosureAccepted = true,
+                    selectedAppState = SelectedAppState.None,
+                    readiness = SetupReadiness.PartiallySetUp,
+                ),
+            onOpenSetup = { setupOpened += 1 },
+            onChooseApp = { chooseAppCount += 1 },
+            onOpenFaq = {},
+            onDismissServiceMessage = {},
+            onEnableNotifications = {},
+        )
+      }
+    }
+
+    composeTestRule.onNodeWithText("What the button opens").performClick()
+    composeTestRule.onNodeWithText("Unrestricted battery").performClick()
+
+    composeTestRule.runOnIdle {
+      assertEquals(1, chooseAppCount)
+      assertEquals(1, setupOpened)
+    }
+  }
+
+  @Test
+  fun statusCard_hasNoStepsLeftLine_whenReady() {
+    composeTestRule.setContent {
+      A11YButtonTheme {
+        HomeScreen(
+            screenState =
+                MainScreenState(
+                    serviceEnabled = true,
+                    disclosureAccepted = true,
+                    selectedAppState =
+                        SelectedAppState.Valid(
+                            app =
+                                InstalledApp(
+                                    packageName = "com.example.reader",
+                                    componentName = "com.example.reader/.HomeActivity",
+                                    label = "Reader",
+                                ),
+                        ),
+                    backgroundProtection = BatteryAllowed,
+                    readiness = SetupReadiness.Ready,
+                ),
+            onOpenSetup = {},
+            onChooseApp = {},
+            onOpenFaq = {},
+            onDismissServiceMessage = {},
+            onEnableNotifications = {},
+        )
+      }
+    }
+
+    composeTestRule.onNodeWithText("Shortcut ready").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Unrestricted battery").assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText("Stops your phone from putting the service to sleep.")
+        .assertDoesNotExist()
   }
 }

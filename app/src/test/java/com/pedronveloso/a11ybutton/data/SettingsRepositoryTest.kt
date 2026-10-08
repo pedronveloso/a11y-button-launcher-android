@@ -45,8 +45,37 @@ class SettingsRepositoryTest {
             selectedComponentName = "com.example.reader/.HomeActivity",
             disclosureAccepted = true,
             notificationPreference = NotificationPreference.Enabled,
+            onboardingCompleted = true,
         ),
         settings,
+    )
+  }
+
+  @Test
+  fun preferencesToAppSettings_skipsOnboarding_forPeopleWhoAlreadyAcceptedTheDisclosure() {
+    val preferences = mutablePreferencesOf(SettingsRepository.DISCLOSURE_ACCEPTED_KEY to true)
+
+    assertEquals(true, SettingsRepository.preferencesToAppSettings(preferences).onboardingCompleted)
+  }
+
+  @Test
+  fun preferencesToAppSettings_showsOnboarding_onAFreshInstall() {
+    val settings = SettingsRepository.preferencesToAppSettings(emptyPreferences())
+
+    assertEquals(false, settings.onboardingCompleted)
+  }
+
+  @Test
+  fun preferencesToAppSettings_prefersStoredOnboardingFlagOverDisclosure() {
+    val preferences =
+        mutablePreferencesOf(
+            SettingsRepository.DISCLOSURE_ACCEPTED_KEY to true,
+            SettingsRepository.ONBOARDING_COMPLETED_KEY to false,
+        )
+
+    assertEquals(
+        false,
+        SettingsRepository.preferencesToAppSettings(preferences).onboardingCompleted,
     )
   }
 

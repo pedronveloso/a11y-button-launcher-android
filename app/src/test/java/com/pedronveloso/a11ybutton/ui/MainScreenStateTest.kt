@@ -12,6 +12,8 @@ import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+private val BatteryAllowed = BackgroundProtectionState(batteryOptimizationIgnored = true)
+
 class MainScreenStateTest {
   @Test
   fun deriveMainScreenState_isNotSetUp_whenNothingIsConfigured() {
@@ -75,6 +77,7 @@ class MainScreenStateTest {
                             label = "Reader",
                         ),
                 ),
+            backgroundProtection = BatteryAllowed,
             serviceMessage = null,
         )
 
@@ -97,6 +100,7 @@ class MainScreenStateTest {
                             intentUri = "intent:#Intent;package=com.example.mail;end",
                         ),
                 ),
+            backgroundProtection = BatteryAllowed,
             serviceMessage = null,
         )
 
@@ -198,5 +202,27 @@ class MainScreenStateTest {
         )
 
     assertEquals(SetupReadiness.Ready, state.readiness)
+  }
+
+  @Test
+  fun deriveMainScreenState_isPartiallySetUp_whenBatteryIsRestrictedOnAnyDevice() {
+    val state =
+        deriveMainScreenState(
+            serviceEnabled = true,
+            disclosureAccepted = true,
+            selectedAppState =
+                SelectedAppState.Valid(
+                    app =
+                        InstalledApp(
+                            packageName = "com.example.reader",
+                            componentName = "com.example.reader/.HomeActivity",
+                            label = "Reader",
+                        ),
+                ),
+            backgroundProtection = BackgroundProtectionState(requiredBrand = null),
+            serviceMessage = null,
+        )
+
+    assertEquals(SetupReadiness.PartiallySetUp, state.readiness)
   }
 }

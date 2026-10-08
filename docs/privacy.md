@@ -49,6 +49,10 @@ This permission is required to register a callback for the Android accessibility
 
 Used to send an optional reminder notification when the accessibility service is not running. You can opt out at any time through the in-app settings or your device's notification settings.
 
+### Battery optimization exemption (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`)
+
+Used only to ask Android to stop restricting the app's battery use, so the system does not put the accessibility service to sleep and stop the button from working. The request is shown by Android itself and you can decline it. The app does not read your battery state or any other battery data.
+
 ### Installed apps and app shortcuts query
 
 Android requires apps to declare `<queries>` entries to see other apps. A11Y Button Launcher declares two:

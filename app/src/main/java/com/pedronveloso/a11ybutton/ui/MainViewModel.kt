@@ -87,6 +87,16 @@ class MainViewModel(
               initialValue = ThemeMode.SYSTEM,
           )
 
+  /** Null until settings have loaded, so the first frame never flashes the wrong start screen. */
+  val onboardingCompleted: StateFlow<Boolean?> =
+      settingsRepository.settings
+          .map<AppSettings, Boolean?> { it.onboardingCompleted }
+          .stateIn(
+              scope = viewModelScope,
+              started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+              initialValue = null,
+          )
+
   val screenState =
       combine(
               serviceEnabled,
@@ -251,6 +261,19 @@ class MainViewModel(
   fun acceptDisclosure() {
     Timber.i("Disclosure accepted from main screen")
     viewModelScope.launch { settingsRepository.setDisclosureAccepted(accepted = true) }
+  }
+
+  fun completeOnboarding() {
+    Timber.i("Onboarding finished or skipped")
+    viewModelScope.launch { settingsRepository.setOnboardingCompleted(completed = true) }
+  }
+
+  fun resetOnboarding() {
+    Timber.i("Resetting onboarding from debug menu")
+    viewModelScope.launch {
+      settingsRepository.setDisclosureAccepted(accepted = false)
+      settingsRepository.setOnboardingCompleted(completed = false)
+    }
   }
 
   fun setServiceMessage(message: String?) {

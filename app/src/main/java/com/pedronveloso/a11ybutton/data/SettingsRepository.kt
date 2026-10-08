@@ -64,6 +64,11 @@ class SettingsRepository(
     dataStore.edit { preferences -> preferences[DISCLOSURE_ACCEPTED_KEY] = accepted }
   }
 
+  suspend fun setOnboardingCompleted(completed: Boolean) {
+    Timber.i("Updating onboarding completion to %s", completed)
+    dataStore.edit { preferences -> preferences[ONBOARDING_COMPLETED_KEY] = completed }
+  }
+
   suspend fun enableNotifications() {
     setNotificationPreference(NotificationPreference.Enabled)
   }
@@ -142,6 +147,7 @@ class SettingsRepository(
     internal val LOGGING_CLEANUP_PENDING_KEY = booleanPreferencesKey("logging_cleanup_pending")
     internal val IN_APP_LOGGING_ENABLED_KEY = booleanPreferencesKey("in_app_logging_enabled")
     internal val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
+    internal val ONBOARDING_COMPLETED_KEY = booleanPreferencesKey("onboarding_completed")
 
     fun fromContext(context: Context): SettingsRepository = SettingsRepository(context.dataStore)
 
@@ -161,6 +167,10 @@ class SettingsRepository(
             themeMode =
                 ThemeMode.entries.find { it.name == preferences[THEME_MODE_KEY] }
                     ?: ThemeMode.SYSTEM,
+            // People who accepted the disclosure before onboarding existed have already set up.
+            onboardingCompleted =
+                preferences[ONBOARDING_COMPLETED_KEY]
+                    ?: (preferences[DISCLOSURE_ACCEPTED_KEY] ?: false),
         )
   }
 
