@@ -5,6 +5,8 @@
 package com.pedronveloso.a11ybutton.ui.onboarding
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -12,15 +14,18 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -30,7 +35,9 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -40,16 +47,27 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.fromHtml
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pedronveloso.a11ybutton.R
 import com.pedronveloso.a11ybutton.ui.MainScreenState
@@ -82,6 +100,7 @@ fun OnboardingScreen(
   val isComplete = step == OnboardingStep.Battery && isDone
   val previous = step.previous
   val next = step.next
+  var showSkipConfirmation by rememberSaveable { mutableStateOf(false) }
 
   BackHandler(enabled = previous != null) { previous?.let(onStepChange) }
 
@@ -114,7 +133,10 @@ fun OnboardingScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (!isComplete) {
-          TextButton(onClick = onFinish, modifier = Modifier.testTag(ONBOARDING_SKIP_BUTTON_TAG)) {
+          TextButton(
+              onClick = { showSkipConfirmation = true },
+              modifier = Modifier.testTag(ONBOARDING_SKIP_BUTTON_TAG),
+          ) {
             Text(text = stringResource(R.string.onboarding_skip))
           }
         }
@@ -179,6 +201,30 @@ fun OnboardingScreen(
       }
     }
   }
+  if (showSkipConfirmation) {
+    AlertDialog(
+        onDismissRequest = { showSkipConfirmation = false },
+        title = { Text(text = stringResource(R.string.onboarding_skip_confirmation_title)) },
+        text = { Text(text = stringResource(R.string.onboarding_skip_confirmation_body)) },
+        confirmButton = {
+          TextButton(
+              onClick = {
+                showSkipConfirmation = false
+                onFinish()
+              },
+              colors =
+                  ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+          ) {
+            Text(text = stringResource(R.string.onboarding_skip_confirm))
+          }
+        },
+        dismissButton = {
+          TextButton(onClick = { showSkipConfirmation = false }) {
+            Text(text = stringResource(R.string.onboarding_skip_cancel))
+          }
+        },
+    )
+  }
 }
 
 @Composable
@@ -229,9 +275,11 @@ private fun StepBody(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     if (step == OnboardingStep.Welcome) {
+      AccessibilityButtonExamples()
       Text(
           text = stringResource(R.string.main_disclosure_body),
           style = MaterialTheme.typography.bodyMedium,
+          modifier = Modifier.padding(bottom = 8.dp),
       )
     }
     if (isComplete && showXiaomiNote) {
@@ -258,6 +306,78 @@ private fun StepBody(
         )
       }
     }
+  }
+}
+
+@Composable
+private fun AccessibilityButtonExamples() {
+  Column(
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.spacedBy(24.dp),
+      modifier = Modifier.fillMaxWidth(),
+  ) {
+    ButtonExample(
+        imageRes = R.drawable.onboarding_navigation_bar_button,
+        captionRes = R.string.onboarding_navigation_bar_caption,
+        descriptionRes = R.string.onboarding_navigation_bar_description,
+        maxWidth = 320.dp,
+    )
+    ButtonExample(
+        imageRes = R.drawable.onboarding_floating_button,
+        captionRes = R.string.onboarding_floating_caption,
+        descriptionRes = R.string.onboarding_floating_description,
+        maxWidth = 124.dp,
+        croppedAspectRatio = 272f / 260f,
+    )
+  }
+}
+
+@Composable
+private fun ButtonExample(
+    @DrawableRes imageRes: Int,
+    @StringRes captionRes: Int,
+    @StringRes descriptionRes: Int,
+    maxWidth: Dp,
+    croppedAspectRatio: Float? = null,
+) {
+  val painter = painterResource(imageRes)
+  Column(
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.spacedBy(8.dp),
+  ) {
+    Image(
+        painter = painter,
+        contentDescription = stringResource(descriptionRes),
+        contentScale = ContentScale.Crop,
+        modifier =
+            Modifier.widthIn(max = maxWidth)
+                .fillMaxWidth()
+                .aspectRatio(
+                    croppedAspectRatio ?: painter.intrinsicSize.width / painter.intrinsicSize.height
+                )
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .drawWithCache {
+                  val stops =
+                      arrayOf(
+                          0f to Color.Transparent,
+                          0.12f to Color.Black,
+                          0.88f to Color.Black,
+                          1f to Color.Transparent,
+                      )
+                  val horizontal = Brush.horizontalGradient(*stops, endX = size.width)
+                  val vertical = Brush.verticalGradient(*stops, endY = size.height)
+                  onDrawWithContent {
+                    drawContent()
+                    drawRect(horizontal, blendMode = BlendMode.DstIn)
+                    drawRect(vertical, blendMode = BlendMode.DstIn)
+                  }
+                },
+    )
+    Text(
+        text = stringResource(captionRes),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
   }
 }
 
@@ -300,6 +420,23 @@ private fun primaryLabel(
             OnboardingStep.Battery -> R.string.background_protection_request_battery_exemption
           }
     }
+
+@ThemePreviews
+@Composable
+private fun OnboardingWelcomeStepPreview() {
+  A11YButtonTheme {
+    OnboardingScreen(
+        screenState = MainScreenState(),
+        step = OnboardingStep.Welcome,
+        onStepChange = {},
+        onAcceptDisclosure = {},
+        onOpenAccessibilitySettings = {},
+        onChooseApp = {},
+        onRequestBatteryExemption = {},
+        onFinish = {},
+    )
+  }
+}
 
 @ThemePreviews
 @Composable

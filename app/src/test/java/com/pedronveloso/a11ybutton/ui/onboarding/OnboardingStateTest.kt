@@ -6,6 +6,7 @@ package com.pedronveloso.a11ybutton.ui.onboarding
 
 import com.pedronveloso.a11ybutton.model.InstalledApp
 import com.pedronveloso.a11ybutton.model.SelectedAppState
+import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import com.pedronveloso.a11ybutton.ui.BackgroundProtectionState
 import com.pedronveloso.a11ybutton.ui.MainScreenState
 import org.junit.Assert.assertEquals
@@ -53,5 +54,26 @@ class OnboardingStateTest {
         )
 
     assertFalse(OnboardingStep.ButtonAction.isDone(state))
+  }
+
+  @Test
+  fun buttonAction_acceptsAnAppShortcut_withoutRequiringOtherSetupSteps() {
+    val state =
+        MainScreenState(
+            selectedAppState =
+                SelectedAppState.ValidShortcut(
+                    ShortcutTarget(
+                        packageName = "com.example.mail",
+                        shortcutId = "compose",
+                        label = "Compose",
+                        intentUri = "intent:#Intent;package=com.example.mail;end",
+                    )
+                )
+        )
+
+    assertTrue(OnboardingStep.ButtonAction.isDone(state))
+    assertFalse(OnboardingStep.Welcome.isDone(state))
+    assertFalse(OnboardingStep.Service.isDone(state))
+    assertFalse(OnboardingStep.Battery.isDone(state))
   }
 }
