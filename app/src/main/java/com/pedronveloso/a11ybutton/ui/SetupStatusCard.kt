@@ -102,6 +102,7 @@ private fun SetupStatusRow(
             Modifier.fillMaxWidth()
                 .clip(shape)
                 .background(palette.positiveContainer)
+                .clickable(role = Role.Button, onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .semantics(mergeDescendants = true) { stateDescription = doneDescription },
     ) {

@@ -48,6 +48,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.unit.dp
 import com.pedronveloso.a11ybutton.R
 import com.pedronveloso.a11ybutton.ui.MainScreenState
@@ -218,7 +220,11 @@ private fun StepBody(
         modifier = Modifier.semantics { heading() },
     )
     Text(
-        text = stringResource(if (isComplete) R.string.onboarding_complete_body else bodyRes(step)),
+        // Strings carry <b> tags escaped as entities, since getString() drops real markup.
+        text =
+            AnnotatedString.fromHtml(
+                stringResource(if (isComplete) R.string.onboarding_complete_body else bodyRes(step))
+            ),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

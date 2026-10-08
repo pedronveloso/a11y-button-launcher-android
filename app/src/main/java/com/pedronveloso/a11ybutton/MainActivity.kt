@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -64,6 +65,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -81,7 +83,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -117,7 +118,6 @@ import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import com.pedronveloso.a11ybutton.model.ThemeMode
-import com.pedronveloso.a11ybutton.model.isConfigured
 import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
 import com.pedronveloso.a11ybutton.service.ServiceDiagnostics
 import com.pedronveloso.a11ybutton.service.ServiceDiagnosticsStore
@@ -146,7 +146,6 @@ import timber.log.Timber
 private enum class MainDestination {
   Onboarding,
   Home,
-  Setup,
   BackgroundProtection,
   Faq,
   Picker,
@@ -154,8 +153,6 @@ private enum class MainDestination {
   Logs,
   Preferences,
 }
-
-internal const val HOME_STATUS_OPEN_SETUP_BUTTON_TAG = "home_status_open_setup_button"
 
 class MainActivity : ComponentActivity() {
   private val mainViewModel: MainViewModel by viewModels()
@@ -215,7 +212,7 @@ fun MainRoute(
   var onboardingStep by rememberSaveable { mutableStateOf(OnboardingStep.Welcome) }
   // Where the picker returns to, since onboarding and Home both open it.
   var pickerReturnTo by rememberSaveable { mutableStateOf(MainDestination.Home) }
-  // Where the FAQ's back navigation goes, since it is reachable from Home, Setup and Preferences.
+  // Where the FAQ's back navigation goes, since it is reachable from Home and Preferences.
   var faqReturnTo by rememberSaveable { mutableStateOf(MainDestination.Home) }
   var logsReturnTo by rememberSaveable { mutableStateOf(MainDestination.Preferences) }
   val canOpenDebugTools = BuildConfig.DEBUG
@@ -286,7 +283,14 @@ fun MainRoute(
         ) { innerPadding ->
           HomeScreen(
               screenState = screenState,
-              onOpenSetup = { destination = MainDestination.Setup },
+              onAcceptDisclosure = viewModel::acceptDisclosure,
+              onOpenAccessibilitySettings = {
+                SystemSettingsNavigator.openAccessibilitySettings(context)
+              },
+              onRequestBatteryExemption = {
+                SystemSettingsNavigator.requestIgnoreBatteryOptimizations(context)
+              },
+              onOpenBackgroundProtection = { destination = MainDestination.BackgroundProtection },
               onChooseApp = {
                 viewModel.refreshAvailableApps()
                 pickerReturnTo = MainDestination.Home
@@ -302,54 +306,15 @@ fun MainRoute(
           )
         }
 
-    MainDestination.Setup -> {
-      BackHandler { destination = MainDestination.Home }
-      Scaffold(
-          modifier = modifier.fillMaxSize(),
-          topBar = {
-            AppTopBar(
-                title = stringResource(id = R.string.setup_title),
-                showBack = true,
-                onBack = { destination = MainDestination.Home },
-                showDebugAction = canOpenDebugTools,
-                onDebugClick = { destination = MainDestination.DebugMenu },
-            )
-          },
-      ) { innerPadding ->
-        SetupScreen(
-            screenState = screenState,
-            onAcceptDisclosure = viewModel::acceptDisclosure,
-            onChooseApp = {
-              viewModel.refreshAvailableApps()
-              pickerReturnTo = MainDestination.Home
-              destination = MainDestination.Picker
-            },
-            onOpenBackgroundProtection = { destination = MainDestination.BackgroundProtection },
-            onRequestBatteryExemption = {
-              SystemSettingsNavigator.requestIgnoreBatteryOptimizations(context)
-            },
-            onOpenAccessibilitySettings = {
-              SystemSettingsNavigator.openAccessibilitySettings(context)
-            },
-            onOpenFaq = {
-              faqReturnTo = MainDestination.Home
-              destination = MainDestination.Faq
-            },
-            onEnableNotifications = viewModel::enableNotifications,
-            modifier = Modifier.padding(innerPadding),
-        )
-      }
-    }
-
     MainDestination.BackgroundProtection -> {
-      BackHandler { destination = MainDestination.Setup }
+      BackHandler { destination = MainDestination.Home }
       Scaffold(
           modifier = modifier.fillMaxSize(),
           topBar = {
             AppTopBar(
                 title = stringResource(id = R.string.background_protection_title),
                 showBack = true,
-                onBack = { destination = MainDestination.Setup },
+                onBack = { destination = MainDestination.Home },
                 showDebugAction = canOpenDebugTools,
                 onDebugClick = { destination = MainDestination.DebugMenu },
             )
@@ -544,7 +509,10 @@ private fun AppTopBar(
 @Composable
 fun HomeScreen(
     screenState: MainScreenState,
-    onOpenSetup: () -> Unit,
+    onAcceptDisclosure: () -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
+    onRequestBatteryExemption: () -> Unit,
+    onOpenBackgroundProtection: () -> Unit,
     onChooseApp: () -> Unit,
     onOpenFaq: () -> Unit,
     onDismissServiceMessage: () -> Unit,
@@ -552,6 +520,29 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
   val uriHandler = LocalUriHandler.current
+  var showDisclosure by rememberSaveable { mutableStateOf(false) }
+  if (showDisclosure) {
+    AlertDialog(
+        onDismissRequest = { showDisclosure = false },
+        title = { Text(text = stringResource(id = R.string.main_disclosure_title)) },
+        text = { Text(text = stringResource(id = R.string.main_disclosure_body)) },
+        confirmButton = {
+          TextButton(
+              onClick = {
+                onAcceptDisclosure()
+                showDisclosure = false
+              },
+          ) {
+            Text(text = stringResource(id = R.string.setup_action_accept_disclosure))
+          }
+        },
+        dismissButton = {
+          TextButton(onClick = { showDisclosure = false }) {
+            Text(text = stringResource(id = R.string.main_message_dismiss))
+          }
+        },
+    )
+  }
   Column(
       verticalArrangement = Arrangement.spacedBy(16.dp),
       modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -575,7 +566,13 @@ fun HomeScreen(
     SetupStatusCard(
         screenState = screenState,
         onItemClick = { item ->
-          if (item == SetupItem.ButtonAction) onChooseApp() else onOpenSetup()
+          when (item) {
+            SetupItem.Disclosure -> showDisclosure = true
+            SetupItem.Service -> onOpenAccessibilitySettings()
+            SetupItem.ButtonAction -> onChooseApp()
+            SetupItem.Battery -> onRequestBatteryExemption()
+            SetupItem.RecentsLock -> onOpenBackgroundProtection()
+          }
         },
     )
 
@@ -598,18 +595,6 @@ fun HomeScreen(
       ) {
         Text(text = stringResource(id = R.string.home_open_faq))
       }
-      // Setup is also where users fix a "ready" app that has silently stopped working, so it is
-      // always reachable; only its emphasis changes with readiness.
-      val setupButtonModifier = Modifier.fillMaxWidth().testTag(HOME_STATUS_OPEN_SETUP_BUTTON_TAG)
-      if (screenState.isReady) {
-        OutlinedButton(onClick = onOpenSetup, modifier = setupButtonModifier) {
-          Text(text = stringResource(id = R.string.home_open_setup_help))
-        }
-      } else {
-        Button(onClick = onOpenSetup, modifier = setupButtonModifier) {
-          Text(text = stringResource(id = R.string.home_open_setup_help))
-        }
-      }
     }
 
     SectionCard(title = stringResource(id = R.string.support_title)) {
@@ -617,26 +602,17 @@ fun HomeScreen(
           text = stringResource(id = R.string.support_body),
           style = MaterialTheme.typography.bodyMedium,
       )
-      Row(
-          horizontalArrangement = Arrangement.spacedBy(12.dp),
+      OutlinedButton(
+          onClick = { uriHandler.openUri(GITHUB_SPONSORS_URL) },
           modifier = Modifier.fillMaxWidth(),
       ) {
-        OutlinedButton(
-            onClick = { uriHandler.openUri(GITHUB_SPONSORS_URL) },
-            modifier = Modifier.weight(1f),
-        ) {
-          Text(
-              text = stringResource(id = R.string.support_github_sponsors),
-              textAlign = TextAlign.Center,
-              modifier = Modifier.fillMaxWidth(),
-          )
-        }
-        OutlinedButton(
-            onClick = { uriHandler.openUri(KOFI_URL) },
-            modifier = Modifier.weight(1f),
-        ) {
-          Text(text = stringResource(id = R.string.support_kofi))
-        }
+        Text(text = stringResource(id = R.string.support_github_sponsors))
+      }
+      OutlinedButton(
+          onClick = { uriHandler.openUri(KOFI_URL) },
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(text = stringResource(id = R.string.support_kofi))
       }
     }
   }
@@ -730,152 +706,6 @@ private fun SelectedAppCard(
         ) {
           Text(text = stringResource(id = R.string.home_selected_app_choose))
         }
-      }
-    }
-  }
-}
-
-@Composable
-private fun SetupScreen(
-    screenState: MainScreenState,
-    onAcceptDisclosure: () -> Unit,
-    onChooseApp: () -> Unit,
-    onOpenBackgroundProtection: () -> Unit,
-    onRequestBatteryExemption: () -> Unit,
-    onOpenAccessibilitySettings: () -> Unit,
-    onOpenFaq: () -> Unit,
-    onEnableNotifications: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-  Column(
-      verticalArrangement = Arrangement.spacedBy(16.dp),
-      modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
-  ) {
-    Text(
-        text = stringResource(id = R.string.setup_intro_title),
-        style = MaterialTheme.typography.headlineSmall,
-    )
-    Text(
-        text = stringResource(id = R.string.setup_intro_body),
-        style = MaterialTheme.typography.bodyLarge,
-    )
-
-    SectionCard(title = stringResource(id = R.string.setup_checklist_title)) {
-      StatusRow(
-          label = stringResource(id = R.string.main_setup_service_label),
-          value =
-              if (screenState.serviceEnabled) {
-                stringResource(id = R.string.main_status_service_enabled)
-              } else {
-                stringResource(id = R.string.main_status_service_disabled)
-              },
-      )
-      StatusRow(
-          label = stringResource(id = R.string.setup_disclosure_label),
-          value =
-              if (screenState.disclosureAccepted) {
-                stringResource(id = R.string.main_disclosure_accepted)
-              } else {
-                stringResource(id = R.string.main_status_readiness_not_setup)
-              },
-      )
-      StatusRow(
-          label = stringResource(id = R.string.main_setup_selected_app_label),
-          value = selectedAppStatusLabel(screenState.selectedAppState),
-      )
-      StatusRow(
-          label = stringResource(id = R.string.background_protection_battery_title),
-          value =
-              if (screenState.backgroundProtection.batteryOptimizationIgnored) {
-                stringResource(id = R.string.background_protection_battery_done)
-              } else {
-                stringResource(id = R.string.background_protection_battery_pending)
-              },
-      )
-      if (screenState.backgroundProtection.requiresRecentsLock) {
-        StatusRow(
-            label = stringResource(id = R.string.background_protection_xiaomi_lock_title),
-            value =
-                if (screenState.backgroundProtection.recentsLockConfirmed) {
-                  stringResource(id = R.string.background_protection_xiaomi_lock_done)
-                } else {
-                  stringResource(id = R.string.background_protection_xiaomi_lock_pending)
-                },
-        )
-      }
-    }
-
-    SectionCard(title = stringResource(id = R.string.main_disclosure_title)) {
-      Text(
-          text = stringResource(id = R.string.main_disclosure_body),
-          style = MaterialTheme.typography.bodyMedium,
-      )
-      if (screenState.disclosureAccepted) {
-        Text(
-            text = stringResource(id = R.string.main_disclosure_accepted),
-            style = MaterialTheme.typography.labelLarge,
-        )
-      } else {
-        Button(
-            onClick = onAcceptDisclosure,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-          Text(text = stringResource(id = R.string.setup_action_accept_disclosure))
-        }
-      }
-    }
-
-    SectionCard(title = stringResource(id = R.string.main_actions_title)) {
-      Button(
-          onClick = onOpenAccessibilitySettings,
-          modifier = Modifier.fillMaxWidth(),
-      ) {
-        Text(text = stringResource(id = R.string.main_action_open_settings))
-      }
-      OutlinedButton(
-          onClick = onChooseApp,
-          modifier = Modifier.fillMaxWidth(),
-      ) {
-        Text(
-            text =
-                if (screenState.selectedAppState.isConfigured) {
-                  stringResource(id = R.string.main_action_change_app)
-                } else {
-                  stringResource(id = R.string.main_action_choose_app)
-                },
-        )
-      }
-      if (screenState.backgroundProtection.requiresRecentsLock) {
-        // Xiaomi needs an extra step (locking the app in recents), so it gets its own screen.
-        OutlinedButton(
-            onClick = onOpenBackgroundProtection,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-          Text(text = stringResource(id = R.string.setup_action_open_background_protection))
-        }
-      } else {
-        OutlinedButton(
-            onClick = onRequestBatteryExemption,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-          Text(
-              text = stringResource(id = R.string.background_protection_request_battery_exemption),
-          )
-        }
-      }
-    }
-
-    NotificationPermissionCard(
-        notificationPreference = screenState.notificationPreference,
-        onEnable = onEnableNotifications,
-    )
-
-    SectionCard(title = stringResource(id = R.string.setup_primary_help)) {
-      OutlinedButton(
-          onClick = onOpenFaq,
-          modifier = Modifier.fillMaxWidth(),
-      ) {
-        Text(text = stringResource(id = R.string.home_open_faq))
       }
     }
   }
@@ -1798,7 +1628,10 @@ private fun HomeScreenPreview() {
                     ),
                 readiness = SetupReadiness.Ready,
             ),
-        onOpenSetup = {},
+        onAcceptDisclosure = {},
+        onOpenAccessibilitySettings = {},
+        onRequestBatteryExemption = {},
+        onOpenBackgroundProtection = {},
         onChooseApp = {},
         onOpenFaq = {},
         onDismissServiceMessage = {},
@@ -1819,7 +1652,10 @@ private fun HomeScreenSetupNeededPreview() {
                 selectedAppState = SelectedAppState.None,
                 readiness = SetupReadiness.PartiallySetUp,
             ),
-        onOpenSetup = {},
+        onAcceptDisclosure = {},
+        onOpenAccessibilitySettings = {},
+        onRequestBatteryExemption = {},
+        onOpenBackgroundProtection = {},
         onChooseApp = {},
         onOpenFaq = {},
         onDismissServiceMessage = {},
@@ -1843,23 +1679,6 @@ private fun SetupStatusCardPreview() {
           onItemClick = {},
       )
     }
-  }
-}
-
-@ThemePreviews
-@Composable
-private fun SetupScreenPreview() {
-  A11YButtonTheme {
-    SetupScreen(
-        screenState = MainScreenState(),
-        onAcceptDisclosure = {},
-        onChooseApp = {},
-        onOpenBackgroundProtection = {},
-        onRequestBatteryExemption = {},
-        onOpenAccessibilitySettings = {},
-        onOpenFaq = {},
-        onEnableNotifications = {},
-    )
   }
 }
 
