@@ -22,7 +22,7 @@
     <string name="onboarding_step_counter">Step %1$d of %2$d</string>
     <string name="onboarding_skip">Skip setup</string>
     <string name="onboarding_skip_confirmation_title">Skip setup?</string>
-    <string name="onboarding_skip_confirmation_body">You can set up the app later from Setup. It’s easier to follow these steps now, especially the first time.</string>
+    <string name="onboarding_skip_confirmation_body">You can finish setting up later from the Home screen. It\'s easier to follow these steps now, especially the first time.</string>
     <string name="onboarding_skip_confirm">Skip for now</string>
     <string name="onboarding_skip_cancel">Continue setup</string>
     <string name="onboarding_back">Back</string>
@@ -42,8 +42,8 @@
     <string name="onboarding_battery_title">Keep it running</string>
     <string name="onboarding_battery_body">Some phones put background apps to sleep, which can stop the button from working. Allowing unrestricted battery use prevents that.</string>
     <string name="onboarding_complete_title">You\'re all set</string>
-    <string name="onboarding_complete_body">Press the accessibility button any time to open your app. You can revisit these steps from Setup.</string>
-    <string name="onboarding_complete_xiaomi">Xiaomi phones need one more step. You\'ll find it under Setup.</string>
+    <string name="onboarding_complete_body">Press the accessibility button any time to open your app. You can revisit these steps from the Home screen.</string>
+    <string name="onboarding_complete_xiaomi">Xiaomi phones need one more step. You\'ll find it in the checklist on the Home screen.</string>
     <string name="home_support_title">Help</string>
     <string name="home_open_faq">Open FAQ</string>
     <string name="home_selected_app_change">Change what opens</string>
@@ -52,6 +52,7 @@
     <string name="setup_action_accept_disclosure">Accept disclosure</string>
     <string name="background_protection_title">Background Protection</string>
     <string name="background_protection_intro_title">Keep the service alive in the background</string>
+    <string name="background_protection_intro_body_default">Allow the app to ignore battery optimization so the shortcut keeps working reliably when the app is in the background.</string>
     <string name="background_protection_intro_body_xiaomi">Your Xiaomi device is more aggressive about killing background apps. Allow the app to ignore battery optimization, then lock the app from the recent apps switcher so the shortcut keeps working reliably.</string>
     <string name="background_protection_actions_title">Actions</string>
     <string name="background_protection_battery_title">Battery optimization</string>
@@ -60,7 +61,7 @@
     <string name="background_protection_request_battery_exemption">Allow Unrestricted Battery Access</string>
     <string name="background_protection_open_battery_settings">Open Battery Settings</string>
     <string name="background_protection_xiaomi_title">Xiaomi recents lock</string>
-    <string name="background_protection_xiaomi_body">Open the recent apps switcher, find Accessibility Button Launcher, and press the lock icon so MIUI keeps it alive in the background. You\'ll it\'s done correctly if a lock icon displays next to the app name in the app switcher.</string>
+    <string name="background_protection_xiaomi_body">Open the recent apps switcher, find Accessibility Button Launcher, and press the lock icon so MIUI keeps it alive in the background. You\'ll know it\'s done correctly if a lock icon displays next to the app name in the app switcher.</string>
     <string name="background_protection_xiaomi_lock_title">Recent apps lock</string>
     <string name="background_protection_xiaomi_lock_done">Lock step confirmed</string>
     <string name="background_protection_xiaomi_lock_pending">Still needs confirmation</string>
@@ -101,7 +102,7 @@
     <string name="main_troubleshooting_button">I don\'t see the accessibility button: Check that the service is enabled. Some devices hide the button depending on navigation mode, but the Accessibility shortcut can still work. On Xiaomi devices, the button may not appear immediately after enabling the service in system settings. If that happens, lock the screen once and unlock it again so MIUI refreshes the shortcut button.</string>
     <string name="main_troubleshooting_nothing">Pressing the button does nothing: Return here and confirm the service is still enabled and something is assigned to the button.</string>
     <string name="main_troubleshooting_missing_app">My selected app no longer opens: Choose the app again. Its launcher entry may have changed or the app may be disabled.</string>
-    <string name="main_troubleshooting_background">On Xiaomi and some other devices, aggressive battery and background restrictions can stop the accessibility service from staying active after the app is backgrounded. Complete the Background Protection step in Setup if your device requires it.</string>
+    <string name="main_troubleshooting_background">On Xiaomi and some other devices, aggressive battery and background restrictions can stop the accessibility service from staying active after the app is backgrounded. Finish the battery and recents lock steps in the Home checklist if your device needs them.</string>
     <string name="picker_title">Choose what to open</string>
     <string name="picker_search_label">Search apps</string>
     <string name="picker_empty">No launchable apps match this search.</string>

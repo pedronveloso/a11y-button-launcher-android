@@ -122,6 +122,7 @@ import com.pedronveloso.a11ybutton.notifications.ServiceStatusNotifier
 import com.pedronveloso.a11ybutton.service.ServiceDiagnostics
 import com.pedronveloso.a11ybutton.service.ServiceDiagnosticsStore
 import com.pedronveloso.a11ybutton.ui.AppPickerApps
+import com.pedronveloso.a11ybutton.ui.BackgroundProtectionBrand
 import com.pedronveloso.a11ybutton.ui.CollapsingHeaderState
 import com.pedronveloso.a11ybutton.ui.MainScreenState
 import com.pedronveloso.a11ybutton.ui.MainViewModel
@@ -765,7 +766,16 @@ private fun BackgroundProtectionScreen(
         style = MaterialTheme.typography.headlineSmall,
     )
     Text(
-        text = stringResource(id = R.string.background_protection_intro_body_xiaomi),
+        text =
+            stringResource(
+                id =
+                    when (backgroundProtection.requiredBrand) {
+                      BackgroundProtectionBrand.Xiaomi ->
+                          R.string.background_protection_intro_body_xiaomi
+                      BackgroundProtectionBrand.Huawei,
+                      null -> R.string.background_protection_intro_body_default
+                    },
+            ),
         style = MaterialTheme.typography.bodyLarge,
     )
 
