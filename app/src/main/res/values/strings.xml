@@ -123,6 +123,7 @@
     <string name="debug_menu_title">Debug Menu</string>
     <string name="debug_menu_open_logs">View logs</string>
     <string name="debug_menu_reset_onboarding">Reset onboarding</string>
+    <string name="debug_menu_hide_icon">Hide debug icon until app restarts</string>
     <string name="debug_diagnostics_title">Service diagnostics</string>
     <string name="debug_service_connection_label">Service connection</string>
     <string name="debug_service_connection_connected">Connected</string>

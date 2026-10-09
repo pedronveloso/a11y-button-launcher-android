@@ -216,7 +216,9 @@ fun MainRoute(
   // Where the FAQ's back navigation goes, since it is reachable from Home and Preferences.
   var faqReturnTo by rememberSaveable { mutableStateOf(MainDestination.Home) }
   var logsReturnTo by rememberSaveable { mutableStateOf(MainDestination.Preferences) }
-  val canOpenDebugTools = BuildConfig.DEBUG
+  // Session-only: lets screenshots omit the debug icon. Resets when the process restarts.
+  var debugIconHidden by rememberSaveable { mutableStateOf(false) }
+  val canOpenDebugTools = BuildConfig.DEBUG && !debugIconHidden
 
   DisposableEffect(lifecycleOwner, viewModel) {
     val observer = LifecycleEventObserver { _, event ->
@@ -412,6 +414,10 @@ fun MainRoute(
             viewModel.resetOnboarding()
             onboardingStep = OnboardingStep.Welcome
             destination = MainDestination.Onboarding
+          },
+          onHideDebugIcon = {
+            debugIconHidden = true
+            destination = MainDestination.Home
           },
           modifier = modifier,
       )
@@ -1365,6 +1371,7 @@ private fun DebugMenuScreen(
     onBack: () -> Unit,
     onOpenLogs: () -> Unit,
     onResetOnboarding: () -> Unit,
+    onHideDebugIcon: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   Scaffold(
@@ -1400,6 +1407,9 @@ private fun DebugMenuScreen(
         }
         OutlinedButton(onClick = onResetOnboarding, modifier = Modifier.fillMaxWidth()) {
           Text(text = stringResource(id = R.string.debug_menu_reset_onboarding))
+        }
+        OutlinedButton(onClick = onHideDebugIcon, modifier = Modifier.fillMaxWidth()) {
+          Text(text = stringResource(id = R.string.debug_menu_hide_icon))
         }
       }
       SectionCard(title = stringResource(id = R.string.debug_diagnostics_title)) {
