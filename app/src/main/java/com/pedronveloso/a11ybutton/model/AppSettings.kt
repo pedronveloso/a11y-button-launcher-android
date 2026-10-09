@@ -14,4 +14,5 @@ data class AppSettings(
     val xiaomiRecentsLockConfirmed: Boolean = false,
     val notificationPreference: NotificationPreference = NotificationPreference.Disabled,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val onboardingCompleted: Boolean = false,
 )

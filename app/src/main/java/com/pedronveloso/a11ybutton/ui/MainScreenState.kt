@@ -43,9 +43,7 @@ fun deriveMainScreenState(
     add(serviceEnabled)
     add(disclosureAccepted)
     add(selectedAppConfigured)
-    if (backgroundProtection.isRequired) {
-      add(backgroundProtection.isComplete)
-    }
+    add(backgroundProtection.isComplete)
   }
   val completedRequirements = requirements.count { it }
   val readiness =

@@ -30,14 +30,14 @@ data class BackgroundProtectionState(
     val batteryOptimizationIgnored: Boolean = false,
     val recentsLockConfirmed: Boolean = false,
 ) {
+  /** True on brands that need extra steps beyond the battery exemption (Xiaomi, Huawei). */
   val isRequired: Boolean
     get() = requiredBrand != null
 
   val requiresRecentsLock: Boolean
     get() = requiredBrand == BackgroundProtectionBrand.Xiaomi
 
+  /** The battery exemption is needed on every device; brand extras only where [isRequired]. */
   val isComplete: Boolean
-    get() =
-        !isRequired ||
-            (batteryOptimizationIgnored && (!requiresRecentsLock || recentsLockConfirmed))
+    get() = batteryOptimizationIgnored && (!requiresRecentsLock || recentsLockConfirmed)
 }

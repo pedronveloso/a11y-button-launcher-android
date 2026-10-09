@@ -13,6 +13,10 @@ import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import com.pedronveloso.a11ybutton.model.ThemeMode
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -45,9 +49,85 @@ class SettingsRepositoryTest {
             selectedComponentName = "com.example.reader/.HomeActivity",
             disclosureAccepted = true,
             notificationPreference = NotificationPreference.Enabled,
+            onboardingCompleted = true,
         ),
         settings,
     )
+  }
+
+  @Test
+  fun preferencesToAppSettings_skipsOnboarding_forPeopleWhoAlreadyAcceptedTheDisclosure() {
+    val preferences = mutablePreferencesOf(SettingsRepository.DISCLOSURE_ACCEPTED_KEY to true)
+
+    assertEquals(true, SettingsRepository.preferencesToAppSettings(preferences).onboardingCompleted)
+  }
+
+  @Test
+  fun preferencesToAppSettings_showsOnboarding_onAFreshInstall() {
+    val settings = SettingsRepository.preferencesToAppSettings(emptyPreferences())
+
+    assertEquals(false, settings.onboardingCompleted)
+  }
+
+  @Test
+  fun preferencesToAppSettings_prefersStoredOnboardingFlagOverDisclosure() {
+    val preferences =
+        mutablePreferencesOf(
+            SettingsRepository.DISCLOSURE_ACCEPTED_KEY to true,
+            SettingsRepository.ONBOARDING_COMPLETED_KEY to false,
+        )
+
+    assertEquals(
+        false,
+        SettingsRepository.preferencesToAppSettings(preferences).onboardingCompleted,
+    )
+  }
+
+  @Test
+  fun skipOnboarding_beforeAcceptingDisclosure_survivesDataStoreRecreation() = runTest {
+    val file = File.createTempFile("onboarding-settings", ".preferences_pb")
+    file.deleteOnExit()
+    val storeJob = Job()
+    val store =
+        PreferenceDataStoreFactory.create(
+            scope = CoroutineScope(Dispatchers.IO + storeJob),
+            produceFile = { file },
+        )
+    try {
+      val repository = SettingsRepository(store)
+      repository.updateShortcutSelection(SHORTCUT)
+      repository.setThemeMode(ThemeMode.DARK)
+      val before = repository.settings.first()
+
+      repository.setOnboardingCompleted(true)
+      storeJob.cancelAndJoin()
+
+      val reopened =
+          SettingsRepository(
+              PreferenceDataStoreFactory.create(
+                  scope = CoroutineScope(backgroundScope.coroutineContext + Dispatchers.IO),
+                  produceFile = { file },
+              )
+          )
+      assertEquals(before.copy(onboardingCompleted = true), reopened.settings.first())
+    } finally {
+      storeJob.cancelAndJoin()
+    }
+  }
+
+  @Test
+  fun setOnboardingCompleted_false_preservesOtherSettings() = runTest {
+    val repository = createRepository()
+    repository.setDisclosureAccepted(true)
+    repository.updateShortcutSelection(SHORTCUT)
+    repository.setThemeMode(ThemeMode.DARK)
+    repository.enableNotifications()
+    repository.setOnboardingCompleted(true)
+    val before = repository.settings.first()
+
+    repository.setOnboardingCompleted(false)
+
+    assertEquals(before.copy(onboardingCompleted = false), repository.settings.first())
   }
 
   @Test
