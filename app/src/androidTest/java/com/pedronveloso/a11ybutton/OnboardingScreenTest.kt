@@ -27,6 +27,7 @@ import com.pedronveloso.a11ybutton.ui.BackgroundProtectionState
 import com.pedronveloso.a11ybutton.ui.MainScreenState
 import com.pedronveloso.a11ybutton.ui.onboarding.ONBOARDING_BACK_BUTTON_TAG
 import com.pedronveloso.a11ybutton.ui.onboarding.ONBOARDING_PRIMARY_BUTTON_TAG
+import com.pedronveloso.a11ybutton.ui.onboarding.ONBOARDING_SKIP_ACTION_BUTTON_TAG
 import com.pedronveloso.a11ybutton.ui.onboarding.ONBOARDING_SKIP_BUTTON_TAG
 import com.pedronveloso.a11ybutton.ui.onboarding.OnboardingScreen
 import com.pedronveloso.a11ybutton.ui.onboarding.OnboardingStep
@@ -106,23 +107,18 @@ class OnboardingScreenTest {
 
   @Test
   fun completedStep_offersContinue_insteadOfItsAction() {
-    var step = OnboardingStep.ButtonAction
+    var step = OnboardingStep.Battery
     setOnboarding(
-        state =
-            MainScreenState(
-                disclosureAccepted = true,
-                serviceEnabled = true,
-                selectedAppState = SelectedAppState.Valid(app),
-            ),
-        initialStep = OnboardingStep.ButtonAction,
+        state = allSet().copy(selectedAppState = SelectedAppState.None),
+        initialStep = OnboardingStep.Battery,
         onStepChanged = { step = it },
     )
 
-    composeTestRule.onNodeWithText("Done").assertIsDisplayed()
-    composeTestRule.onNodeWithText("Choose what to open").assertDoesNotExist()
+    composeTestRule.onNodeWithText("Continue").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Allow Unrestricted Battery Access").assertDoesNotExist()
     composeTestRule.onNodeWithTag(ONBOARDING_PRIMARY_BUTTON_TAG).performClick()
 
-    composeTestRule.runOnIdle { assertEquals(OnboardingStep.Battery, step) }
+    composeTestRule.runOnIdle { assertEquals(OnboardingStep.ButtonAction, step) }
   }
 
   @Test
@@ -181,11 +177,11 @@ class OnboardingScreenTest {
   }
 
   @Test
-  fun completedBatteryStep_showsRemainingXiaomiSetup_andLetsUserGoBack() {
-    var step = OnboardingStep.Battery
+  fun completedActionStep_showsRemainingXiaomiSetup_andLetsUserGoBack() {
+    var step = OnboardingStep.ButtonAction
     setOnboarding(
         state =
-            allButBattery()
+            allSet()
                 .copy(
                     backgroundProtection =
                         BackgroundProtectionState(
@@ -194,7 +190,7 @@ class OnboardingScreenTest {
                             recentsLockConfirmed = false,
                         )
                 ),
-        initialStep = OnboardingStep.Battery,
+        initialStep = OnboardingStep.ButtonAction,
         onStepChanged = { step = it },
     )
 
@@ -203,17 +199,17 @@ class OnboardingScreenTest {
         .onNodeWithText(composeTestRule.activity.getString(R.string.onboarding_complete_xiaomi))
         .performScrollTo()
         .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ONBOARDING_SKIP_ACTION_BUTTON_TAG).assertDoesNotExist()
     composeTestRule.onNodeWithTag(ONBOARDING_BACK_BUTTON_TAG).performClick()
 
-    composeTestRule.runOnIdle { assertEquals(OnboardingStep.ButtonAction, step) }
+    composeTestRule.runOnIdle { assertEquals(OnboardingStep.Battery, step) }
     composeTestRule.onNodeWithText("Step 3 of 4").assertIsDisplayed()
   }
 
   @Test
-  fun batteryStep_requestsExemption_thenFinishesWithAllSetState() {
+  fun batteryStep_requestsExemption_thenOffersContinue() {
     var requested = false
-    var finished = false
-    var state by mutableStateOf(allButBattery())
+    var state by mutableStateOf(allSet().copy(backgroundProtection = BackgroundProtectionState()))
     composeTestRule.setContent {
       A11YButtonTheme {
         OnboardingScreen(
@@ -224,12 +220,12 @@ class OnboardingScreenTest {
             onOpenAccessibilitySettings = {},
             onChooseApp = {},
             onRequestBatteryExemption = { requested = true },
-            onFinish = { finished = true },
+            onFinish = {},
         )
       }
     }
 
-    composeTestRule.onNodeWithText("Step 4 of 4").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Step 3 of 4").assertIsDisplayed()
     composeTestRule.onNodeWithText("Allow Unrestricted Battery Access").performClick()
     composeTestRule.runOnIdle { assertTrue(requested) }
 
@@ -240,10 +236,65 @@ class OnboardingScreenTest {
           )
     }
 
+    composeTestRule.onNodeWithText("Continue").assertIsDisplayed()
+    composeTestRule.onNodeWithText("You're all set").assertDoesNotExist()
+  }
+
+  @Test
+  fun actionStep_chooseApp_thenFinishesWithAllSetState() {
+    var chose = false
+    var finished = false
+    var state by mutableStateOf(allSet().copy(selectedAppState = SelectedAppState.None))
+    composeTestRule.setContent {
+      A11YButtonTheme {
+        OnboardingScreen(
+            screenState = state,
+            step = OnboardingStep.ButtonAction,
+            onStepChange = {},
+            onAcceptDisclosure = {},
+            onOpenAccessibilitySettings = {},
+            onChooseApp = { chose = true },
+            onRequestBatteryExemption = {},
+            onFinish = { finished = true },
+        )
+      }
+    }
+
+    composeTestRule.onNodeWithText("Step 4 of 4").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ONBOARDING_PRIMARY_BUTTON_TAG).performClick()
+    composeTestRule.runOnIdle { assertTrue(chose) }
+
+    composeTestRule.runOnUiThread {
+      state = state.copy(selectedAppState = SelectedAppState.Valid(app))
+    }
+
     composeTestRule.onNodeWithText("You're all set").assertIsDisplayed()
     composeTestRule.onNodeWithTag(ONBOARDING_SKIP_BUTTON_TAG).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(ONBOARDING_SKIP_ACTION_BUTTON_TAG).assertDoesNotExist()
     composeTestRule.onNodeWithTag(ONBOARDING_PRIMARY_BUTTON_TAG).performClick()
     composeTestRule.runOnIdle { assertTrue(finished) }
+  }
+
+  @Test
+  fun actionStep_skipForNow_finishesWithoutAnApp() {
+    var finished = false
+    setOnboarding(
+        state = allSet().copy(selectedAppState = SelectedAppState.None),
+        initialStep = OnboardingStep.ButtonAction,
+        onFinish = { finished = true },
+    )
+
+    composeTestRule.onNodeWithTag(ONBOARDING_SKIP_BUTTON_TAG).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(ONBOARDING_SKIP_ACTION_BUTTON_TAG).performClick()
+
+    composeTestRule.runOnIdle { assertTrue(finished) }
+  }
+
+  @Test
+  fun skipForNowButton_isOnlyOnTheActionStep() {
+    setOnboarding(state = allSet(), initialStep = OnboardingStep.Service)
+
+    composeTestRule.onNodeWithTag(ONBOARDING_SKIP_ACTION_BUTTON_TAG).assertDoesNotExist()
   }
 
   @Test
@@ -327,11 +378,12 @@ class OnboardingScreenTest {
     composeTestRule.runOnIdle { assertEquals(1, finishCount) }
   }
 
-  private fun allButBattery() =
+  private fun allSet() =
       MainScreenState(
           disclosureAccepted = true,
           serviceEnabled = true,
           selectedAppState = SelectedAppState.Valid(app),
+          backgroundProtection = BackgroundProtectionState(batteryOptimizationIgnored = true),
       )
 
   private fun setOnboarding(

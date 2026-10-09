@@ -78,6 +78,7 @@ import com.pedronveloso.a11ybutton.ui.theme.a11YButtonStatusPalette
 const val ONBOARDING_PRIMARY_BUTTON_TAG = "onboarding_primary_button"
 const val ONBOARDING_SKIP_BUTTON_TAG = "onboarding_skip_button"
 const val ONBOARDING_BACK_BUTTON_TAG = "onboarding_back_button"
+const val ONBOARDING_SKIP_ACTION_BUTTON_TAG = "onboarding_skip_action_button"
 
 /**
  * First-run setup, one requirement per step. The current [step] is owned by the caller so it
@@ -97,9 +98,10 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier,
 ) {
   val isDone = step.isDone(screenState)
-  val isComplete = step == OnboardingStep.Battery && isDone
   val previous = step.previous
   val next = step.next
+  val isLastStep = next == null
+  val isComplete = isLastStep && isDone
   var showSkipConfirmation by rememberSaveable { mutableStateOf(false) }
 
   BackHandler(enabled = previous != null) { previous?.let(onStepChange) }
@@ -132,7 +134,7 @@ fun OnboardingScreen(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (!isComplete) {
+        if (!isLastStep) {
           TextButton(
               onClick = { showSkipConfirmation = true },
               modifier = Modifier.testTag(ONBOARDING_SKIP_BUTTON_TAG),
@@ -161,7 +163,7 @@ fun OnboardingScreen(
         StepBody(
             step = displayedStep,
             isDone = displayedDone,
-            isComplete = displayedStep == OnboardingStep.Battery && displayedDone,
+            isComplete = displayedStep.next == null && displayedDone,
             showXiaomiNote =
                 screenState.backgroundProtection.requiresRecentsLock &&
                     !screenState.backgroundProtection.recentsLockConfirmed,
@@ -189,6 +191,14 @@ fun OnboardingScreen(
             modifier = Modifier.fillMaxWidth().testTag(ONBOARDING_PRIMARY_BUTTON_TAG),
         ) {
           Text(text = stringResource(primaryLabel(step, isDone)))
+        }
+        if (isLastStep && !isDone) {
+          TextButton(
+              onClick = onFinish,
+              modifier = Modifier.fillMaxWidth().testTag(ONBOARDING_SKIP_ACTION_BUTTON_TAG),
+          ) {
+            Text(text = stringResource(R.string.onboarding_skip_action))
+          }
         }
         if (previous != null) {
           TextButton(
@@ -410,7 +420,7 @@ private fun primaryLabel(
     isDone: Boolean,
 ): Int =
     when {
-      step == OnboardingStep.Battery && isDone -> R.string.onboarding_finish
+      step.next == null && isDone -> R.string.onboarding_finish
       isDone -> R.string.onboarding_continue
       else ->
           when (step) {
