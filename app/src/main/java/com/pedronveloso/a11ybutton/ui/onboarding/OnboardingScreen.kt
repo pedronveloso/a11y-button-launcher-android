@@ -197,7 +197,7 @@ fun OnboardingScreen(
               onClick = onFinish,
               modifier = Modifier.fillMaxWidth().testTag(ONBOARDING_SKIP_ACTION_BUTTON_TAG),
           ) {
-            Text(text = stringResource(R.string.onboarding_skip_action))
+            Text(text = stringResource(R.string.onboarding_skip_for_now))
           }
         }
         if (previous != null) {
@@ -225,7 +225,7 @@ fun OnboardingScreen(
               colors =
                   ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
           ) {
-            Text(text = stringResource(R.string.onboarding_skip_confirm))
+            Text(text = stringResource(R.string.onboarding_skip_for_now))
           }
         },
         dismissButton = {

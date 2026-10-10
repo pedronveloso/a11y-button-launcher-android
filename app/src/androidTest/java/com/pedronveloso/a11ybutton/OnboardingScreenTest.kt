@@ -146,7 +146,7 @@ class OnboardingScreenTest {
 
     composeTestRule.runOnUiThread { state = state.copy(serviceEnabled = true) }
 
-    composeTestRule.runOnIdle { assertEquals(OnboardingStep.ButtonAction, step) }
+    composeTestRule.runOnIdle { assertEquals(OnboardingStep.Battery, step) }
   }
 
   @Test

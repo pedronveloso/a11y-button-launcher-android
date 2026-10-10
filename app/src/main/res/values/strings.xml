@@ -23,8 +23,7 @@
     <string name="onboarding_skip">Skip setup</string>
     <string name="onboarding_skip_confirmation_title">Skip setup?</string>
     <string name="onboarding_skip_confirmation_body">You can finish setting up later from the Home screen. It\'s easier to follow these steps now, especially the first time.</string>
-    <string name="onboarding_skip_confirm">Skip for now</string>
-    <string name="onboarding_skip_action">Skip for now</string>
+    <string name="onboarding_skip_for_now">Skip for now</string>
     <string name="onboarding_skip_cancel">Continue setup</string>
     <string name="onboarding_back">Back</string>
     <string name="onboarding_continue">Continue</string>

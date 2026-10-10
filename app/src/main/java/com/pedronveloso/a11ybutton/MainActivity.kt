@@ -216,8 +216,7 @@ fun MainRoute(
   // Where the FAQ's back navigation goes, since it is reachable from Home and Preferences.
   var faqReturnTo by rememberSaveable { mutableStateOf(MainDestination.Home) }
   var logsReturnTo by rememberSaveable { mutableStateOf(MainDestination.Preferences) }
-  // Session-only: lets screenshots omit the debug icon. Resets when the process restarts.
-  var debugIconHidden by rememberSaveable { mutableStateOf(false) }
+  val debugIconHidden by viewModel.debugIconHidden.collectAsStateWithLifecycle()
   val canOpenDebugTools = BuildConfig.DEBUG && !debugIconHidden
 
   DisposableEffect(lifecycleOwner, viewModel) {
@@ -416,7 +415,7 @@ fun MainRoute(
             destination = MainDestination.Onboarding
           },
           onHideDebugIcon = {
-            debugIconHidden = true
+            viewModel.hideDebugIcon()
             destination = MainDestination.Home
           },
           modifier = modifier,
