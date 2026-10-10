@@ -13,11 +13,10 @@ enum class BackgroundProtectionBrand {
         brand: String?,
         manufacturer: String?,
     ): BackgroundProtectionBrand? {
-      val normalizedValues =
-          listOfNotNull(brand, manufacturer).map { value -> value.trim().lowercase() }
+      val normalizedValues = normalizedDeviceNames(brand, manufacturer)
 
       return when {
-        normalizedValues.any { it.contains("xiaomi") } -> Xiaomi
+        normalizedValues.isXiaomiFamily() -> Xiaomi
         normalizedValues.any { it.contains("huawei") } -> Huawei
         else -> null
       }

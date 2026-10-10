@@ -30,6 +30,7 @@ import com.pedronveloso.a11ybutton.model.SelectedAppState
 import com.pedronveloso.a11ybutton.model.ShortcutTarget
 import com.pedronveloso.a11ybutton.model.ThemeMode
 import com.pedronveloso.a11ybutton.service.ShortcutLaunchAccessibilityService
+import com.pedronveloso.a11ybutton.ui.onboarding.ServiceMenuHint
 import com.pedronveloso.a11ybutton.work.ServiceCheckWorker
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
@@ -71,6 +72,8 @@ class MainViewModel(
           brand = Build.BRAND,
           manufacturer = Build.MANUFACTURER,
       )
+  private val serviceMenuHint =
+      ServiceMenuHint.fromDevice(brand = Build.BRAND, manufacturer = Build.MANUFACTURER)
   private val settingsState =
       settingsRepository.settings.stateIn(
           scope = viewModelScope,
@@ -118,6 +121,7 @@ class MainViewModel(
                     ),
                 serviceMessage = currentServiceMessage,
                 notificationPreference = settings.notificationPreference,
+                serviceMenuHint = serviceMenuHint,
             )
           }
           .stateIn(

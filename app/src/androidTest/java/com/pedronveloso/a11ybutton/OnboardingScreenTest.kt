@@ -31,6 +31,7 @@ import com.pedronveloso.a11ybutton.ui.onboarding.ONBOARDING_SKIP_ACTION_BUTTON_T
 import com.pedronveloso.a11ybutton.ui.onboarding.ONBOARDING_SKIP_BUTTON_TAG
 import com.pedronveloso.a11ybutton.ui.onboarding.OnboardingScreen
 import com.pedronveloso.a11ybutton.ui.onboarding.OnboardingStep
+import com.pedronveloso.a11ybutton.ui.onboarding.ServiceMenuHint
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -288,6 +289,16 @@ class OnboardingScreenTest {
     composeTestRule.onNodeWithTag(ONBOARDING_SKIP_ACTION_BUTTON_TAG).performClick()
 
     composeTestRule.runOnIdle { assertTrue(finished) }
+  }
+
+  @Test
+  fun serviceStep_pointsToTheDownloadedAppsMenu_onXiaomi() {
+    setOnboarding(
+        state = MainScreenState(serviceMenuHint = ServiceMenuHint.Xiaomi),
+        initialStep = OnboardingStep.Service,
+    )
+
+    composeTestRule.onNodeWithText("Downloaded apps", substring = true).assertIsDisplayed()
   }
 
   @Test

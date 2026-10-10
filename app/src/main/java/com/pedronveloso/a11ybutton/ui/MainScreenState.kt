@@ -7,6 +7,7 @@ package com.pedronveloso.a11ybutton.ui
 import com.pedronveloso.a11ybutton.model.NotificationPreference
 import com.pedronveloso.a11ybutton.model.SelectedAppState
 import com.pedronveloso.a11ybutton.model.isConfigured
+import com.pedronveloso.a11ybutton.ui.onboarding.ServiceMenuHint
 
 enum class SetupReadiness {
   NotSetUp,
@@ -22,6 +23,7 @@ data class MainScreenState(
     val serviceMessage: String? = null,
     val readiness: SetupReadiness = SetupReadiness.NotSetUp,
     val notificationPreference: NotificationPreference = NotificationPreference.Disabled,
+    val serviceMenuHint: ServiceMenuHint = ServiceMenuHint.Other,
 ) {
   val isReady: Boolean
     get() = readiness == SetupReadiness.Ready
@@ -37,6 +39,7 @@ fun deriveMainScreenState(
     backgroundProtection: BackgroundProtectionState = BackgroundProtectionState(),
     serviceMessage: String? = null,
     notificationPreference: NotificationPreference = NotificationPreference.Disabled,
+    serviceMenuHint: ServiceMenuHint = ServiceMenuHint.Other,
 ): MainScreenState {
   val selectedAppConfigured = selectedAppState.isConfigured
   val requirements = buildList {
@@ -61,5 +64,6 @@ fun deriveMainScreenState(
       serviceMessage = serviceMessage,
       readiness = readiness,
       notificationPreference = notificationPreference,
+      serviceMenuHint = serviceMenuHint,
   )
 }

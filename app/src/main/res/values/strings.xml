@@ -36,7 +36,10 @@
     <string name="onboarding_floating_description">Accessibility button floating at the right edge of the screen</string>
     <string name="onboarding_welcome_action">Accept and continue</string>
     <string name="onboarding_service_title">Turn on the service</string>
-    <string name="onboarding_service_body">Android needs you to switch it on in Accessibility settings. Look for &lt;b&gt;\"Accessibility Button Launcher\"&lt;/b&gt; and turn it on. On some phones, like Samsung, you\'ll need to tap &lt;b&gt;\"Installed apps\"&lt;/b&gt; first to find it.</string>
+    <string name="onboarding_service_body">Android needs you to switch it on in Accessibility settings. Look for &lt;b&gt;\"Accessibility Button Launcher\"&lt;/b&gt; and turn it on.</string>
+    <string name="onboarding_service_body_xiaomi">Android needs you to switch it on in Accessibility settings. Open the &lt;b&gt;\"Downloaded apps\"&lt;/b&gt; menu, look for &lt;b&gt;\"Accessibility Button Launcher\"&lt;/b&gt; and turn it on.</string>
+    <string name="onboarding_service_body_samsung">Android needs you to switch it on in Accessibility settings. Tap &lt;b&gt;\"Installed apps\"&lt;/b&gt;, look for &lt;b&gt;\"Accessibility Button Launcher\"&lt;/b&gt; and turn it on.</string>
+    <string name="onboarding_service_body_pixel">Android needs you to switch it on in Accessibility settings. Look for &lt;b&gt;\"Accessibility Button Launcher\"&lt;/b&gt; in the &lt;b&gt;\"Downloaded apps\"&lt;/b&gt; section on the main screen and turn it on.</string>
     <string name="onboarding_action_title">Pick what the button opens</string>
     <string name="onboarding_action_body">Choose an app, or a specific action inside an app.</string>
     <string name="onboarding_battery_title">Keep it running</string>

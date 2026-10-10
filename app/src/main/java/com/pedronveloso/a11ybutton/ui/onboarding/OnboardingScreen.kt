@@ -164,6 +164,7 @@ fun OnboardingScreen(
             step = displayedStep,
             isDone = displayedDone,
             isComplete = displayedStep.next == null && displayedDone,
+            serviceMenuHint = screenState.serviceMenuHint,
             showXiaomiNote =
                 screenState.backgroundProtection.requiresRecentsLock &&
                     !screenState.backgroundProtection.recentsLockConfirmed,
@@ -242,6 +243,7 @@ private fun StepBody(
     step: OnboardingStep,
     isDone: Boolean,
     isComplete: Boolean,
+    serviceMenuHint: ServiceMenuHint,
     showXiaomiNote: Boolean,
 ) {
   val palette = a11YButtonStatusPalette()
@@ -279,7 +281,10 @@ private fun StepBody(
         // Strings carry <b> tags escaped as entities, since getString() drops real markup.
         text =
             AnnotatedString.fromHtml(
-                stringResource(if (isComplete) R.string.onboarding_complete_body else bodyRes(step))
+                stringResource(
+                    if (isComplete) R.string.onboarding_complete_body
+                    else bodyRes(step, serviceMenuHint)
+                )
             ),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -407,10 +412,16 @@ private fun titleRes(step: OnboardingStep): Int =
       OnboardingStep.Battery -> R.string.onboarding_battery_title
     }
 
-private fun bodyRes(step: OnboardingStep): Int =
+private fun bodyRes(step: OnboardingStep, serviceMenuHint: ServiceMenuHint): Int =
     when (step) {
       OnboardingStep.Welcome -> R.string.onboarding_welcome_body
-      OnboardingStep.Service -> R.string.onboarding_service_body
+      OnboardingStep.Service ->
+          when (serviceMenuHint) {
+            ServiceMenuHint.Xiaomi -> R.string.onboarding_service_body_xiaomi
+            ServiceMenuHint.Samsung -> R.string.onboarding_service_body_samsung
+            ServiceMenuHint.Pixel -> R.string.onboarding_service_body_pixel
+            ServiceMenuHint.Other -> R.string.onboarding_service_body
+          }
       OnboardingStep.ButtonAction -> R.string.onboarding_action_body
       OnboardingStep.Battery -> R.string.onboarding_battery_body
     }
