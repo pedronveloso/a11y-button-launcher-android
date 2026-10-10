@@ -294,9 +294,8 @@ class OnboardingScreenTest {
   @Test
   fun serviceStep_pointsToTheDownloadedAppsMenu_onXiaomi() {
     setOnboarding(
-        state = MainScreenState(),
+        state = MainScreenState(serviceMenuHint = ServiceMenuHint.Xiaomi),
         initialStep = OnboardingStep.Service,
-        serviceMenuHint = ServiceMenuHint.Xiaomi,
     )
 
     composeTestRule.onNodeWithText("Downloaded apps", substring = true).assertIsDisplayed()
@@ -406,7 +405,6 @@ class OnboardingScreenTest {
       onStepChanged: (OnboardingStep) -> Unit = {},
       onFinish: () -> Unit = {},
       restorationTester: StateRestorationTester? = null,
-      serviceMenuHint: ServiceMenuHint = ServiceMenuHint.Other,
   ) {
     val content: @Composable () -> Unit = {
       A11YButtonTheme {
@@ -423,7 +421,6 @@ class OnboardingScreenTest {
             onChooseApp = {},
             onRequestBatteryExemption = {},
             onFinish = onFinish,
-            serviceMenuHint = serviceMenuHint,
         )
       }
     }

@@ -4,6 +4,9 @@
  */
 package com.pedronveloso.a11ybutton.ui.onboarding
 
+import com.pedronveloso.a11ybutton.ui.isXiaomiFamily
+import com.pedronveloso.a11ybutton.ui.normalizedDeviceNames
+
 /** Where a device's Accessibility settings list downloaded apps, so onboarding can point to it. */
 enum class ServiceMenuHint {
   Xiaomi,
@@ -12,17 +15,14 @@ enum class ServiceMenuHint {
   Other;
 
   companion object {
-    private val XIAOMI_FAMILY = listOf("xiaomi", "redmi", "poco")
-
     fun fromDevice(
         brand: String?,
         manufacturer: String?,
     ): ServiceMenuHint {
-      val normalizedValues =
-          listOfNotNull(brand, manufacturer).map { value -> value.trim().lowercase() }
+      val normalizedValues = normalizedDeviceNames(brand, manufacturer)
 
       return when {
-        normalizedValues.any { value -> XIAOMI_FAMILY.any { value.contains(it) } } -> Xiaomi
+        normalizedValues.isXiaomiFamily() -> Xiaomi
         normalizedValues.any { it.contains("samsung") } -> Samsung
         normalizedValues.any { it == "google" } -> Pixel
         else -> Other

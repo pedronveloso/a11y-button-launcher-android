@@ -4,7 +4,6 @@
  */
 package com.pedronveloso.a11ybutton.ui.onboarding
 
-import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -49,7 +48,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -98,9 +96,6 @@ fun OnboardingScreen(
     onRequestBatteryExemption: () -> Unit,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
-    serviceMenuHint: ServiceMenuHint = remember {
-      ServiceMenuHint.fromDevice(brand = Build.BRAND, manufacturer = Build.MANUFACTURER)
-    },
 ) {
   val isDone = step.isDone(screenState)
   val previous = step.previous
@@ -169,7 +164,7 @@ fun OnboardingScreen(
             step = displayedStep,
             isDone = displayedDone,
             isComplete = displayedStep.next == null && displayedDone,
-            serviceMenuHint = serviceMenuHint,
+            serviceMenuHint = screenState.serviceMenuHint,
             showXiaomiNote =
                 screenState.backgroundProtection.requiresRecentsLock &&
                     !screenState.backgroundProtection.recentsLockConfirmed,
