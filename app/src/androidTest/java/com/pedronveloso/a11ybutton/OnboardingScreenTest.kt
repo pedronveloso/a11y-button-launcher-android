@@ -31,6 +31,7 @@ import com.pedronveloso.a11ybutton.ui.onboarding.ONBOARDING_SKIP_ACTION_BUTTON_T
 import com.pedronveloso.a11ybutton.ui.onboarding.ONBOARDING_SKIP_BUTTON_TAG
 import com.pedronveloso.a11ybutton.ui.onboarding.OnboardingScreen
 import com.pedronveloso.a11ybutton.ui.onboarding.OnboardingStep
+import com.pedronveloso.a11ybutton.ui.onboarding.ServiceMenuHint
 import com.pedronveloso.a11ybutton.ui.theme.A11YButtonTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -291,6 +292,17 @@ class OnboardingScreenTest {
   }
 
   @Test
+  fun serviceStep_pointsToTheDownloadedAppsMenu_onXiaomi() {
+    setOnboarding(
+        state = MainScreenState(),
+        initialStep = OnboardingStep.Service,
+        serviceMenuHint = ServiceMenuHint.Xiaomi,
+    )
+
+    composeTestRule.onNodeWithText("Downloaded apps", substring = true).assertIsDisplayed()
+  }
+
+  @Test
   fun skipForNowButton_isOnlyOnTheActionStep() {
     setOnboarding(state = allSet(), initialStep = OnboardingStep.Service)
 
@@ -394,6 +406,7 @@ class OnboardingScreenTest {
       onStepChanged: (OnboardingStep) -> Unit = {},
       onFinish: () -> Unit = {},
       restorationTester: StateRestorationTester? = null,
+      serviceMenuHint: ServiceMenuHint = ServiceMenuHint.Other,
   ) {
     val content: @Composable () -> Unit = {
       A11YButtonTheme {
@@ -410,6 +423,7 @@ class OnboardingScreenTest {
             onChooseApp = {},
             onRequestBatteryExemption = {},
             onFinish = onFinish,
+            serviceMenuHint = serviceMenuHint,
         )
       }
     }

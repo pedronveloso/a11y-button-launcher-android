@@ -4,6 +4,7 @@
  */
 package com.pedronveloso.a11ybutton.ui.onboarding
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -48,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -96,6 +98,9 @@ fun OnboardingScreen(
     onRequestBatteryExemption: () -> Unit,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
+    serviceMenuHint: ServiceMenuHint = remember {
+      ServiceMenuHint.fromDevice(brand = Build.BRAND, manufacturer = Build.MANUFACTURER)
+    },
 ) {
   val isDone = step.isDone(screenState)
   val previous = step.previous
@@ -164,6 +169,7 @@ fun OnboardingScreen(
             step = displayedStep,
             isDone = displayedDone,
             isComplete = displayedStep.next == null && displayedDone,
+            serviceMenuHint = serviceMenuHint,
             showXiaomiNote =
                 screenState.backgroundProtection.requiresRecentsLock &&
                     !screenState.backgroundProtection.recentsLockConfirmed,
@@ -242,6 +248,7 @@ private fun StepBody(
     step: OnboardingStep,
     isDone: Boolean,
     isComplete: Boolean,
+    serviceMenuHint: ServiceMenuHint,
     showXiaomiNote: Boolean,
 ) {
   val palette = a11YButtonStatusPalette()
@@ -279,7 +286,10 @@ private fun StepBody(
         // Strings carry <b> tags escaped as entities, since getString() drops real markup.
         text =
             AnnotatedString.fromHtml(
-                stringResource(if (isComplete) R.string.onboarding_complete_body else bodyRes(step))
+                stringResource(
+                    if (isComplete) R.string.onboarding_complete_body
+                    else bodyRes(step, serviceMenuHint)
+                )
             ),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -407,10 +417,16 @@ private fun titleRes(step: OnboardingStep): Int =
       OnboardingStep.Battery -> R.string.onboarding_battery_title
     }
 
-private fun bodyRes(step: OnboardingStep): Int =
+private fun bodyRes(step: OnboardingStep, serviceMenuHint: ServiceMenuHint): Int =
     when (step) {
       OnboardingStep.Welcome -> R.string.onboarding_welcome_body
-      OnboardingStep.Service -> R.string.onboarding_service_body
+      OnboardingStep.Service ->
+          when (serviceMenuHint) {
+            ServiceMenuHint.Xiaomi -> R.string.onboarding_service_body_xiaomi
+            ServiceMenuHint.Samsung -> R.string.onboarding_service_body_samsung
+            ServiceMenuHint.Pixel -> R.string.onboarding_service_body_pixel
+            ServiceMenuHint.Other -> R.string.onboarding_service_body
+          }
       OnboardingStep.ButtonAction -> R.string.onboarding_action_body
       OnboardingStep.Battery -> R.string.onboarding_battery_body
     }
