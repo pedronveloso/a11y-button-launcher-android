@@ -61,7 +61,14 @@ class SettingsRepository(
 
   suspend fun setDisclosureAccepted(accepted: Boolean) {
     Timber.i("Updating disclosure acceptance to %s", accepted)
-    dataStore.edit { preferences -> preferences[DISCLOSURE_ACCEPTED_KEY] = accepted }
+    dataStore.edit { preferences ->
+      preferences[DISCLOSURE_ACCEPTED_KEY] = accepted
+      // Pin onboarding as unfinished, otherwise accepting would make the legacy fallback below
+      // read as "already set up" and end onboarding after its first step, including on restore.
+      if (accepted && ONBOARDING_COMPLETED_KEY !in preferences) {
+        preferences[ONBOARDING_COMPLETED_KEY] = false
+      }
+    }
   }
 
   suspend fun setOnboardingCompleted(completed: Boolean) {
