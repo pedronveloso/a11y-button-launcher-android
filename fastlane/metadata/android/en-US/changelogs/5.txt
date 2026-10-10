@@ -1,0 +1,5 @@
+Release candidate 1. Setup is now quicker to get through.
+
+- Choosing what the button opens is now the last setup step, after the permissions
+- New "Skip for now" button on that step, so you can start using the app right away and pick an app later from the Home screen
+- Fixed setup ending early after reinstalling the app with a restored backup. It now walks through every step
