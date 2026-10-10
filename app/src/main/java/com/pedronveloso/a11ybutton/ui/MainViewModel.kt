@@ -258,6 +258,15 @@ class MainViewModel(
     }
   }
 
+  private val _debugIconHidden = MutableStateFlow(false)
+
+  /** Lasts as long as the process: survives rotation, resets on restart. Used for screenshots. */
+  val debugIconHidden: StateFlow<Boolean> = _debugIconHidden
+
+  fun hideDebugIcon() {
+    _debugIconHidden.value = true
+  }
+
   fun acceptDisclosure() {
     Timber.i("Disclosure accepted from main screen")
     viewModelScope.launch { settingsRepository.setDisclosureAccepted(accepted = true) }

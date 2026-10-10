@@ -20,9 +20,9 @@ class OnboardingStateTest {
   fun steps_runInOrder_andStopAtBothEnds() {
     assertNull(OnboardingStep.Welcome.previous)
     assertEquals(OnboardingStep.Service, OnboardingStep.Welcome.next)
-    assertEquals(OnboardingStep.ButtonAction, OnboardingStep.Service.next)
-    assertEquals(OnboardingStep.Battery, OnboardingStep.ButtonAction.next)
-    assertNull(OnboardingStep.Battery.next)
+    assertEquals(OnboardingStep.Battery, OnboardingStep.Service.next)
+    assertEquals(OnboardingStep.ButtonAction, OnboardingStep.Battery.next)
+    assertNull(OnboardingStep.ButtonAction.next)
   }
 
   @Test

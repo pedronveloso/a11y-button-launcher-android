@@ -116,6 +116,27 @@ class SettingsRepositoryTest {
   }
 
   @Test
+  fun setDisclosureAccepted_duringOnboarding_doesNotCompleteOnboarding() = runTest {
+    val repository = createRepository()
+
+    repository.setDisclosureAccepted(true)
+
+    val settings = repository.settings.first()
+    assertEquals(true, settings.disclosureAccepted)
+    assertEquals(false, settings.onboardingCompleted)
+  }
+
+  @Test
+  fun setDisclosureAccepted_keepsCompletedOnboarding() = runTest {
+    val repository = createRepository()
+    repository.setOnboardingCompleted(true)
+
+    repository.setDisclosureAccepted(true)
+
+    assertEquals(true, repository.settings.first().onboardingCompleted)
+  }
+
+  @Test
   fun setOnboardingCompleted_false_preservesOtherSettings() = runTest {
     val repository = createRepository()
     repository.setDisclosureAccepted(true)

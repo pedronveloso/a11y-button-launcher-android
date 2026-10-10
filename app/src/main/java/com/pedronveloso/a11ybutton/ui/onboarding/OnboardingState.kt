@@ -11,8 +11,8 @@ import com.pedronveloso.a11ybutton.ui.MainScreenState
 enum class OnboardingStep {
   Welcome,
   Service,
-  ButtonAction,
-  Battery;
+  Battery,
+  ButtonAction;
 
   val next: OnboardingStep?
     get() = entries.getOrNull(ordinal + 1)
