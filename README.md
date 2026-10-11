@@ -6,12 +6,15 @@
 
 The button belongs to Android itself. Depending on your device and settings, it appears in the navigation bar or floats at the edge of the screen, as shown in the screenshot below. If the chosen app is no longer available, the app opens and explains what needs to be fixed.
 
-<table>
-  <tr>
-    <td align="center"><img src="docs/images/a11btn-in-action.gif" alt="Pressing the Accessibility button to open the chosen app" width="320"></td>
-    <td align="center"><img src="docs/images/onboarding-screen-1.png" alt="The Accessibility button in the navigation bar, or floating at the edge of the screen" width="475"></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/images/a11btn-in-action.gif" alt="Pressing the Accessibility button to open the chosen app" width="320"><br>
+  <em>One tap on the Accessibility button opens your chosen app, from anywhere.</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/onboarding-screen-1.png" alt="The Accessibility button in the navigation bar, or floating at the edge of the screen" width="333"><br>
+  <em>The button lives in the navigation bar, or floats at the edge of the screen.</em>
+</p>
 
 ## What you can do with it
 
